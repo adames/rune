@@ -1,0 +1,74 @@
+"""Extractor registry + shared helpers.
+
+An extractor turns a tool's *actual* bindings into `Section`s with no manual
+annotation. It either introspects a running tool (tmux list-keys, git config)
+or parses a config file (aerospace.toml, keybindings.json). Each registers
+under a name used in chord.toml's `[[extract]] tool = "..."`.
+"""
+
+from __future__ import annotations
+
+import shutil
+import subprocess
+import sys
+from collections.abc import Callable
+
+from ..config import ExtractSource
+from ..model import Section
+
+# name -> fn(source) -> list[Section]
+REGISTRY: dict[str, Callable[[ExtractSource], list[Section]]] = {}
+
+
+def register(name: str):
+    def deco(fn: Callable[[ExtractSource], list[Section]]):
+        REGISTRY[name] = fn
+        return fn
+
+    return deco
+
+
+def warn(msg: str) -> None:
+    print(f"chord[extract]: {msg}", file=sys.stderr)
+
+
+def have(cmd: str) -> bool:
+    return shutil.which(cmd) is not None
+
+
+def run(args: list[str], **kw) -> str | None:
+    """Run a command, return stdout or None on any failure."""
+    try:
+        out = subprocess.run(args, capture_output=True, text=True, timeout=10, **kw)
+    except (OSError, subprocess.SubprocessError) as exc:
+        warn(f"{' '.join(args[:2])}…: {exc}")
+        return None
+    if out.returncode != 0:
+        return out.stdout or None
+    return out.stdout
+
+
+def prettify_modifiers(chord: str) -> str:
+    """Collapse verbose modifier stacks into short, readable forms.
+
+    `cmd-alt-ctrl-shift-h` -> `hyper+h`; `ctrl-shift-a` -> `⌃⇧+a`. Generic —
+    no assumptions about a particular WM.
+    """
+    parts = chord.split("-")
+    if len(parts) <= 1:
+        return chord
+    *mods, key = parts
+    modset = {m.lower() for m in mods}
+    if modset == {"cmd", "alt", "ctrl", "shift"}:
+        return f"hyper+{key}"
+    glyph = {"cmd": "⌘", "alt": "⌥", "ctrl": "⌃", "shift": "⇧",
+             "super": "❖", "meta": "◆"}
+    pretty = "".join(glyph.get(m.lower(), m + "-") for m in mods)
+    return f"{pretty}+{key}" if pretty else chord
+
+
+def get_extractor(name: str):
+    # Import side-effect: ensure all extractor modules are loaded/registered.
+    from . import aerospace, git, nvim, skhd, tmux, vscode, zsh  # noqa: F401
+
+    return REGISTRY.get(name)
