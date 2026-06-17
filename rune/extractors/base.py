@@ -3,7 +3,7 @@
 An extractor turns a tool's *actual* bindings into `Section`s with no manual
 annotation. It either introspects a running tool (tmux list-keys, git config)
 or parses a config file (aerospace.toml, keybindings.json). Each registers
-under a name used in chord.toml's `[[extract]] tool = "..."`.
+under a name used in rune.toml's `[[extract]] tool = "..."`.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ def register(name: str):
 
 
 def warn(msg: str) -> None:
-    print(f"chord[extract]: {msg}", file=sys.stderr)
+    print(f"rune[extract]: {msg}", file=sys.stderr)
 
 
 def have(cmd: str) -> bool:
@@ -48,15 +48,15 @@ def run(args: list[str], **kw) -> str | None:
     return out.stdout
 
 
-def prettify_modifiers(chord: str) -> str:
+def prettify_modifiers(rune: str) -> str:
     """Collapse verbose modifier stacks into short, readable forms.
 
     `cmd-alt-ctrl-shift-h` -> `hyper+h`; `ctrl-shift-a` -> `⌃⇧+a`. Generic —
     no assumptions about a particular WM.
     """
-    parts = chord.split("-")
+    parts = rune.split("-")
     if len(parts) <= 1:
-        return chord
+        return rune
     *mods, key = parts
     modset = {m.lower() for m in mods}
     if modset == {"cmd", "alt", "ctrl", "shift"}:
@@ -64,7 +64,7 @@ def prettify_modifiers(chord: str) -> str:
     glyph = {"cmd": "⌘", "alt": "⌥", "ctrl": "⌃", "shift": "⇧",
              "super": "❖", "meta": "◆"}
     pretty = "".join(glyph.get(m.lower(), m + "-") for m in mods)
-    return f"{pretty}+{key}" if pretty else chord
+    return f"{pretty}+{key}" if pretty else rune
 
 
 def get_extractor(name: str):

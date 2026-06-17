@@ -1,5 +1,5 @@
-# chord.toml — see https://github.com/adames/chord
-marker = "@chord"   # @cs is also always accepted
+# rune.toml — see https://github.com/adames/rune
+marker = "@rune"   # @cs is also always accepted
 
 # ── inline annotations: descriptions co-located with bindings ──────────────
 # [[annotate]]

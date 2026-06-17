@@ -38,8 +38,8 @@ def extract(source: ExtractSource) -> list[Section]:
         binding = (mode or {}).get("binding", {})
         if not isinstance(binding, dict) or not binding:
             continue
-        rows = [Row(key=prettify_modifiers(chord), desc=_humanize(cmd))
-                for chord, cmd in binding.items()]
+        rows = [Row(key=prettify_modifiers(rune), desc=_humanize(cmd))
+                for rune, cmd in binding.items()]
         sections.append(Section(
             id=f"aerospace-{mode_name}",
             title=f"AeroSpace · {mode_name}",

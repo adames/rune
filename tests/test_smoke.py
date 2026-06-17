@@ -5,33 +5,33 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from chord.annotations import parse_file
-from chord.build import build
-from chord.config import Config, ExtractSource
-from chord.extractors.base import prettify_modifiers
-from chord.model import BannerItem, Column, Document, Row, Section, View, slugify
-from chord.render import html as html_render
-from chord.render import markdown as md_render
-from chord.render import tui
+from rune.annotations import parse_file
+from rune.build import build
+from rune.config import Config, ExtractSource
+from rune.extractors.base import prettify_modifiers
+from rune.model import BannerItem, Column, Document, Row, Section, View, slugify
+from rune.render import html as html_render
+from rune.render import markdown as md_render
+from rune.render import tui
 
 ANNOTATED = """\
-# @chord section Windows
-# @chord id      win
-# @chord family  system
-# @chord sub     Hyper held
-# @chord idea    hjkl focuses
-# @chord row     caps + h :: focus left
-# @chord row     caps + l :: focus right
-# @chord end
+# @rune section Windows
+# @rune id      win
+# @rune family  system
+# @rune sub     Hyper held
+# @rune idea    hjkl focuses
+# @rune row     caps + h :: focus left
+# @rune row     caps + l :: focus right
+# @rune end
 
 # @cs section Legacy
 # @cs family terminal
 # @cs row a :: alpha
 # @cs end
 
-# @chord section Dropped
-# @chord row x :: no family so this is dropped
-# @chord end
+# @rune section Dropped
+# @rune row x :: no family so this is dropped
+# @rune end
 """
 
 
@@ -64,7 +64,7 @@ class TestAnnotations(unittest.TestCase):
         self.tmp.write_text(ANNOTATED)
 
     def test_parse(self):
-        secs = parse_file(self.tmp, "#", "@chord")
+        secs = parse_file(self.tmp, "#", "@rune")
         ids = {s.id for s in secs}
         self.assertEqual(ids, {"win", "legacy"})  # 'Dropped' lacks family
         win = next(s for s in secs if s.id == "win")
@@ -72,7 +72,7 @@ class TestAnnotations(unittest.TestCase):
         self.assertEqual(len(win.rows), 2)
 
     def test_legacy_cs_marker(self):
-        secs = parse_file(self.tmp, "#", "@chord")
+        secs = parse_file(self.tmp, "#", "@rune")
         self.assertIn("legacy", {s.id for s in secs})  # @cs still parsed
 
 

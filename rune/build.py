@@ -5,7 +5,7 @@ Order of precedence in the section pool (later wins):
   2. inline annotations  — hand-written, authoritative descriptions/grouping
 
 So extraction gives you everything for free, and an annotation is how you
-override or enrich a specific section. If the config defines no views, chord
+override or enrich a specific section. If the config defines no views, rune
 synthesizes a default layout (one lens per family).
 """
 
@@ -26,7 +26,7 @@ def _collect(cfg: Config) -> dict[str, Section]:
     for src in cfg.extract:
         fn = get_extractor(src.tool)
         if fn is None:
-            print(f"chord: unknown extractor '{src.tool}'", file=sys.stderr)
+            print(f"rune: unknown extractor '{src.tool}'", file=sys.stderr)
             continue
         for sec in fn(src):
             pool[sec.id] = sec
@@ -63,9 +63,9 @@ def build(cfg: Config) -> Document:
     doc = Document(banner=banner, views=views, sections=pool)
 
     for vid, missing in doc.dangling_refs():
-        print(f"chord: lens '{vid}' references missing section '{missing}'",
+        print(f"rune: lens '{vid}' references missing section '{missing}'",
               file=sys.stderr)
     for sid in doc.unreferenced_sections():
-        print(f"chord: section '{sid}' is in the pool but no lens shows it",
+        print(f"rune: section '{sid}' is in the pool but no lens shows it",
               file=sys.stderr)
     return doc

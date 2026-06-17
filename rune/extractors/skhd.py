@@ -10,8 +10,8 @@ from ..model import Row, Section
 from .base import register, warn
 
 _DEFAULT = Path("~/.config/skhd/skhdrc").expanduser()
-# chord : command     OR     chord ; mode-switch
-_LINE = re.compile(r"^\s*(?P<chord>[^\s#].*?)\s*[:;]\s*(?P<cmd>.+?)\s*$")
+# rune : command     OR     rune ; mode-switch
+_LINE = re.compile(r"^\s*(?P<rune>[^\s#].*?)\s*[:;]\s*(?P<cmd>.+?)\s*$")
 
 
 def _humanize(cmd: str) -> str:
@@ -31,8 +31,8 @@ def extract(source: ExtractSource) -> list[Section]:
         if not s or s.startswith("#") or s.startswith("."):
             continue
         m = _LINE.match(s)
-        if m and m.group("chord"):
-            rows.append(Row(key=m.group("chord"), desc=_humanize(m.group("cmd"))))
+        if m and m.group("rune"):
+            rows.append(Row(key=m.group("rune"), desc=_humanize(m.group("cmd"))))
     if not rows:
         return []
     return [Section(id="skhd", title="skhd · hotkeys", rows=rows,

@@ -1,12 +1,12 @@
-"""chord.toml loading + sensible defaults.
+"""rune.toml loading + sensible defaults.
 
 A config declares three things:
-  - `annotate`: files to scan for inline `@chord`/`@cs` annotations
+  - `annotate`: files to scan for inline `@rune`/`@cs` annotations
   - `extract`:  native extractors to run (tmux, git, aerospace, vscode, ...)
   - `banner` + `view`: how to arrange the resulting sections into lenses
 
-Everything is optional; with no config at all, chord auto-detects a handful
-of common tools so `chord show` does something useful out of the box.
+Everything is optional; with no config at all, rune auto-detects a handful
+of common tools so `rune show` does something useful out of the box.
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ class ExtractSource:
 
 @dataclass
 class Config:
-    marker: str = "@chord"
+    marker: str = "@rune"
     annotate: list[AnnotateSource] = field(default_factory=list)
     extract: list[ExtractSource] = field(default_factory=list)
     banner: list[BannerItem] = field(default_factory=list)
@@ -102,7 +102,7 @@ class Config:
                               key=str(v.get("key", "")), columns=cols))
 
         return Config(
-            marker=raw.get("marker", "@chord"),
+            marker=raw.get("marker", "@rune"),
             annotate=annotate, extract=extract,
             banner=banner, views=views, root=root,
         )

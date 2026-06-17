@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "chord-cheatsheet"
+name = "rune-cheatsheet"
 version = "0.1.0"
 description = "A unified keybinding cheatsheet generated from your configs — which-key for your whole machine"
 readme = "README.md"
@@ -13,10 +13,10 @@ authors = [{ name = "adames" }]
 keywords = ["cheatsheet", "keybindings", "dotfiles", "tmux", "neovim", "which-key", "hud"]
 
 [project.scripts]
-chord = "chord.cli:main"
+rune = "rune.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/adames/chord"
+Homepage = "https://github.com/adames/rune"
 
 [tool.setuptools]
-packages = ["chord", "chord.extractors", "chord.render"]
+packages = ["rune", "rune.extractors", "rune.render"]

@@ -1,11 +1,11 @@
 # Example: the author's dotfiles — mixes inline annotations with native
 # extractors, then arranges them into hand-tuned lenses.
 #
-#   chord -c examples/dotfiles.chord.toml show
+#   rune -c examples/dotfiles.rune.toml show
 #
 root = "~/dotfiles"
 
-# Inline @cs / @chord annotations already living in these configs.
+# Inline @cs / @rune annotations already living in these configs.
 [[annotate]]
 path = "configs/aerospace.toml"
 [[annotate]]

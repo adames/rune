@@ -1,4 +1,4 @@
-"""Core data model for chord.
+"""Core data model for rune.
 
 The pipeline is: sources (annotations + native extractors) produce `Section`s,
 which are pooled by id; a layout arranges section ids into `View`s (lenses);
@@ -27,7 +27,7 @@ FAMILIES = ("system", "terminal", "editor", "vim", "nvim", "git", "browser", "ap
 
 @dataclass
 class Row:
-    """One line in a section: a chord and what it does.
+    """One line in a section: a key chord and what it does.
 
     `key == "—"` marks a footnote (prose, no keycap) — preserved from the
     original sigil convention.
@@ -86,7 +86,7 @@ class View:
 
     id: str
     label: str
-    key: str  # single-char nav chord in the HUD/TUI
+    key: str  # single-char nav rune in the HUD/TUI
     columns: list[Column] = field(default_factory=list)
 
     def section_ids(self) -> list[str]:

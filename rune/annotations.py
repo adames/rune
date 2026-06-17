@@ -1,19 +1,19 @@
-"""Parse inline `@chord` / `@cs` annotations co-located with bindings.
+"""Parse inline `@rune` / `@cs` annotations co-located with bindings.
 
 Grammar (shown with `#` prefix; any line-comment prefix works):
 
-    # @chord section Windows          ← starts a block (auto-flushes the prior)
-    # @chord id      windows-focus    ← optional; defaults to slugify(title)
-    # @chord family  system           ← optional; colors the section
-    # @chord sub     Hyper held       ← optional subtitle
-    # @chord idea    hjkl focuses …    ← optional one-line mental model
-    # @chord custom  keyboard         ← optional alternate renderer
-    # @chord row     caps + h :: focus left
-    # @chord row     caps + l :: focus right
-    # @chord end
+    # @rune section Windows          ← starts a block (auto-flushes the prior)
+    # @rune id      windows-focus    ← optional; defaults to slugify(title)
+    # @rune family  system           ← optional; colors the section
+    # @rune sub     Hyper held       ← optional subtitle
+    # @rune idea    hjkl focuses …    ← optional one-line mental model
+    # @rune custom  keyboard         ← optional alternate renderer
+    # @rune row     caps + h :: focus left
+    # @rune row     caps + l :: focus right
+    # @rune end
 
 The point of inline annotations: the description lives next to the binding,
-so it can't drift. Both `@chord` and the legacy `@cs` marker are accepted, so
+so it can't drift. Both `@rune` and the legacy `@cs` marker are accepted, so
 existing sigil dotfiles parse unchanged.
 """
 
@@ -29,10 +29,10 @@ _FIELDS = {"id", "family", "sub", "idea", "custom"}
 
 
 def _warn(msg: str) -> None:
-    print(f"chord[annotate]: {msg}", file=sys.stderr)
+    print(f"rune[annotate]: {msg}", file=sys.stderr)
 
 
-def parse_file(path: Path, prefix: str, marker: str = "@chord") -> list[Section]:
+def parse_file(path: Path, prefix: str, marker: str = "@rune") -> list[Section]:
     if not path.exists():
         _warn(f"{path}: not found — skipping")
         return []

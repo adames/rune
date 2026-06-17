@@ -1,12 +1,12 @@
-"""chord CLI — init / build / show / export / extract.
+"""rune CLI — init / build / show / export / extract.
 
-  chord show                 interactive TUI HUD (or plain text if non-TTY)
-  chord build -o out.json    emit the JSON contract (feeds the macOS overlay)
-  chord export --html f.html shareable single-page cheatsheet
-  chord export --md f.md     markdown cheatsheet / docs
-  chord extract tmux         dump one extractor's sections (debugging)
-  chord init                 scaffold a chord.toml in the current dir
-  chord extractors           list available native extractors
+  rune show                 interactive TUI HUD (or plain text if non-TTY)
+  rune build -o out.json    emit the JSON contract (feeds the macOS overlay)
+  rune export --html f.html shareable single-page cheatsheet
+  rune export --md f.md     markdown cheatsheet / docs
+  rune extract tmux         dump one extractor's sections (debugging)
+  rune init                 scaffold a rune.toml in the current dir
+  rune extractors           list available native extractors
 """
 
 from __future__ import annotations
@@ -25,11 +25,11 @@ from .render import html as html_render
 from .render import markdown as md_render
 from .render import tui
 
-DEFAULT_CONFIG = "chord.toml"
+DEFAULT_CONFIG = "rune.toml"
 
 _SCAFFOLD = """\
-# chord.toml — see https://github.com/adames/chord
-marker = "@chord"   # @cs is also always accepted
+# rune.toml — see https://github.com/adames/rune
+marker = "@rune"   # @cs is also always accepted
 
 # ── inline annotations: descriptions co-located with bindings ──────────────
 # [[annotate]]
@@ -59,14 +59,14 @@ tool = "aerospace"
 def _load(args) -> Config:
     path = Path(args.config)
     if not path.exists():
-        print(f"chord: no {path} (run `chord init`); using auto-detect defaults",
+        print(f"rune: no {path} (run `rune init`); using auto-detect defaults",
               file=sys.stderr)
         return _autodetect()
     return Config.load(path)
 
 
 def _autodetect() -> Config:
-    """No config? Probe for a few common tools so `chord show` isn't empty."""
+    """No config? Probe for a few common tools so `rune show` isn't empty."""
     cfg = Config(root=Path.cwd())
     for tool in ("tmux", "git", "aerospace", "vscode", "skhd"):
         cfg.extract.append(ExtractSource(tool=tool))
@@ -80,7 +80,7 @@ def _doc(args) -> Document:
 def cmd_init(args) -> int:
     path = Path(args.config)
     if path.exists() and not args.force:
-        print(f"chord: {path} exists (use --force to overwrite)", file=sys.stderr)
+        print(f"rune: {path} exists (use --force to overwrite)", file=sys.stderr)
         return 1
     path.write_text(_SCAFFOLD)
     print(f"wrote {path}")
@@ -97,7 +97,7 @@ def cmd_extractors(args) -> int:
 def cmd_extract(args) -> int:
     fn = get_extractor(args.tool)
     if fn is None:
-        print(f"chord: unknown extractor '{args.tool}'", file=sys.stderr)
+        print(f"rune: unknown extractor '{args.tool}'", file=sys.stderr)
         return 2
     path = Path(args.path) if args.path else None
     secs = fn(ExtractSource(tool=args.tool, path=path))
@@ -134,20 +134,20 @@ def cmd_export(args) -> int:
         Path(args.text).write_text(tui.plain(doc))
         wrote.append(args.text)
     if not wrote:
-        print("chord: nothing to export (pass --html/--md/--text)", file=sys.stderr)
+        print("rune: nothing to export (pass --html/--md/--text)", file=sys.stderr)
         return 1
     print("wrote " + ", ".join(wrote), file=sys.stderr)
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="chord", description=__doc__,
+    p = argparse.ArgumentParser(prog="rune", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--version", action="version", version=f"chord {__version__}")
-    p.add_argument("-c", "--config", default=DEFAULT_CONFIG, help="path to chord.toml")
+    p.add_argument("--version", action="version", version=f"rune {__version__}")
+    p.add_argument("-c", "--config", default=DEFAULT_CONFIG, help="path to rune.toml")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    s = sub.add_parser("init", help="scaffold a chord.toml")
+    s = sub.add_parser("init", help="scaffold a rune.toml")
     s.add_argument("--force", action="store_true")
     s.set_defaults(fn=cmd_init)
 

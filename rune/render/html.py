@@ -92,7 +92,7 @@ def render(doc: Document) -> str:
     banner = " · ".join(f"<b>{escape(b.k)}</b> {escape(b.v)}" for b in doc.banner)
     return f"""<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>chord — keybindings</title><style>{_CSS}</style></head><body>
+<title>rune — keybindings</title><style>{_CSS}</style></head><body>
 <header><h1>Keybindings</h1><div class="banner">{banner}</div></header>
 <nav>{nav}</nav>{"".join(lenses)}
 <script>{_JS}</script></body></html>"""
