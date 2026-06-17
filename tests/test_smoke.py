@@ -104,6 +104,15 @@ class TestRenderers(unittest.TestCase):
         self.assertIn("focus left", out)
 
 
+class TestCLI(unittest.TestCase):
+    def test_config_flag_either_side_of_subcommand(self):
+        from rune.cli import build_parser
+        p = build_parser()
+        self.assertEqual(p.parse_args(["-c", "x.toml", "build"]).config, "x.toml")
+        self.assertEqual(p.parse_args(["build", "-c", "x.toml"]).config, "x.toml")
+        self.assertEqual(p.parse_args(["build"]).config, "rune.toml")
+
+
 class TestBuild(unittest.TestCase):
     def test_autolayout(self):
         cfg = Config(extract=[ExtractSource(tool="git")])  # may be empty; that's fine

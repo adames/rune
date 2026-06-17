@@ -140,33 +140,49 @@ def cmd_export(args) -> int:
     return 0
 
 
+def _add_config(parser, *, suppress: bool) -> None:
+    # -c works before OR after the subcommand. The top-level copy supplies the
+    # default; the per-subcommand copy uses SUPPRESS so an absent flag doesn't
+    # clobber a value already given before the subcommand.
+    parser.add_argument(
+        "-c", "--config",
+        default=argparse.SUPPRESS if suppress else DEFAULT_CONFIG,
+        help="path to rune.toml",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="rune", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--version", action="version", version=f"rune {__version__}")
-    p.add_argument("-c", "--config", default=DEFAULT_CONFIG, help="path to rune.toml")
+    _add_config(p, suppress=False)
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    s = sub.add_parser("init", help="scaffold a rune.toml")
+    def add(name, **kw):
+        s = sub.add_parser(name, **kw)
+        _add_config(s, suppress=True)
+        return s
+
+    s = add("init", help="scaffold a rune.toml")
     s.add_argument("--force", action="store_true")
     s.set_defaults(fn=cmd_init)
 
-    s = sub.add_parser("extractors", help="list native extractors")
+    s = add("extractors", help="list native extractors")
     s.set_defaults(fn=cmd_extractors)
 
-    s = sub.add_parser("extract", help="dump one extractor's sections")
+    s = add("extract", help="dump one extractor's sections")
     s.add_argument("tool")
     s.add_argument("--path")
     s.set_defaults(fn=cmd_extract)
 
-    s = sub.add_parser("build", help="emit the JSON contract")
+    s = add("build", help="emit the JSON contract")
     s.add_argument("-o", "--output")
     s.set_defaults(fn=cmd_build)
 
-    s = sub.add_parser("show", help="interactive TUI HUD")
+    s = add("show", help="interactive TUI HUD")
     s.set_defaults(fn=cmd_show)
 
-    s = sub.add_parser("export", help="render HTML / Markdown / text")
+    s = add("export", help="render HTML / Markdown / text")
     s.add_argument("--html")
     s.add_argument("--md")
     s.add_argument("--text")
