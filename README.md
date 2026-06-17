@@ -1,9 +1,14 @@
 # rune
 
-**A unified keybinding cheatsheet, generated from your configs.**
-which-key for your *whole machine* — one always-available reference that spans
-your window manager, terminal multiplexer, shell, and editor, instead of one
-popup per tool.
+[![ci](https://github.com/adames/rune/actions/workflows/ci.yml/badge.svg)](https://github.com/adames/rune/actions/workflows/ci.yml)
+
+**One keybinding cheatsheet for your whole machine, generated from your configs.**
+
+A rune is a symbol you learn to read. So are your keybindings — except they're
+scattered across tmux, nvim, your window manager, your shell, and you only ever
+half-remember half of them. `which-key` shows you one tool at a time. I wanted
+the whole keyboard in one place, generated from the configs I already have, so
+it can't lie to me.
 
 ```
 rune show                 # interactive TUI HUD (works over SSH)
@@ -11,24 +16,22 @@ rune export --html k.html # shareable single-page cheatsheet
 rune build -o cheats.json # JSON for a native overlay (e.g. the macOS HUD)
 ```
 
-## Why
+## why
 
-Keyboard-driven setups scatter bindings across tmux, nvim, your WM, your shell.
-The existing options each see only a slice:
+Every existing option sees only a slice:
 
 | | scope | source | cross-tool | drifts? |
 |---|---|---|---|---|
 | KeyCue / CheatSheet (macOS) | active app's **menu** | app menus | ❌ blind to your dotfiles | no |
 | which-key.nvim | one editor | live bindings | ❌ in-app only | no |
-| hand-written `cheatsheet.md` | whatever you type | manual | ✅ | **yes** |
+| a `cheatsheet.md` you hand-wrote | whatever you typed | you | ✅ | **always** |
 | **rune** | **everything** | your configs | ✅ | **no** |
 
-rune reads your **actual** bindings — so it can't drift — and unifies them
-into one view.
+rune reads your *actual* bindings, so it can't drift. That's the whole pitch.
 
-## Two ways in (mix freely)
+## two ways in (mix freely)
 
-**1. Native extractors — zero annotation.** rune introspects real bindings:
+**1. Native extractors — zero annotation.** rune introspects what's really bound:
 
 | extractor | source |
 |---|---|
@@ -45,8 +48,11 @@ rune init      # writes a starter rune.toml
 rune show      # extract + render, no annotation required
 ```
 
-**2. Inline annotations — authoritative descriptions.** Put the doc next to the
-binding so it can't go stale. Both `@rune` and the legacy `@cs` marker work:
+Don't see your tool? It's ~40 lines to add one — see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+**2. Inline annotations — when you want the description to be *yours*.** Put the
+doc next to the binding so it can't go stale. `@rune` and the legacy `@cs`
+marker both work:
 
 ```toml
 # @rune section Windows
@@ -59,23 +65,23 @@ cmd-alt-ctrl-shift-h = 'focus left'
 cmd-alt-ctrl-shift-l = 'focus right'
 ```
 
-On an id collision, **annotations win** over extractors — extraction gives you
-coverage for free, an annotation is how you override or enrich one section.
+On an id collision **annotations win**: extraction gives you coverage for free,
+an annotation is how you override or enrich one section.
 
-## Renderers
+## renderers
 
-The build produces a stable JSON document; renderers are swappable:
+The build is a stable JSON document; renderers are swappable:
 
-- **TUI** (`rune show`) — curses HUD, Tab/digits switch lenses; widest reach.
+- **TUI** (`rune show`) — curses HUD, Tab/digits switch lenses. Widest reach.
 - **HTML** (`rune export --html`) — self-contained page, doubles as docs.
-- **Markdown** (`rune export --md`) — diff-able, drops into a wiki/README.
-- **JSON** (`rune build`) — the contract a native overlay consumes (the
-  macOS [sigil](https://github.com/adames/sigil) HUD reads exactly this).
+- **Markdown** (`rune export --md`) — diff-able, drops into a wiki.
+- **JSON** (`rune build`) — the contract a native overlay reads. The macOS
+  [sigil](https://github.com/adames/sigil) HUD consumes exactly this.
 
-## Config
+## config
 
-`rune.toml` declares sources and (optionally) hand-tuned lenses; omit the
-lenses and rune auto-groups sections by family. See
+`rune.toml` declares sources and (optionally) hand-tuned lenses. Omit the lenses
+and rune auto-groups by family. Full example:
 [`examples/dotfiles.rune.toml`](examples/dotfiles.rune.toml).
 
 ```toml
@@ -89,21 +95,29 @@ id = "term"; label = "Terminal"; key = "1"
 columns = [ ["tmux-prefix"], ["git-aliases"], [] ]
 ```
 
-## Install
+## install
 
 ```
-pipx install rune-cheatsheet     # or: pip install -e .
+pipx install rune-cheatsheet     # or, from a clone: pip install -e .
 ```
 
-Pure Python ≥3.11, **stdlib only** — no runtime dependencies.
+Pure Python ≥3.11, **stdlib only** — nothing to pull in.
 
-## Status
+## where it came from
 
-v0.1 — extracted and generalized from sigil's macOS cheatsheet HUD. The JSON
-contract is stable; extractors are best-effort (annotate for authority).
-Known gaps: multi-line `vim.keymap.set` desc fields, and the native overlay
-renderer is currently macOS-only (sigil).
+rune is the cheatsheet half of [sigil](https://github.com/adames/sigil), my
+macOS window-manager toolkit. I ripped the window management out (AeroSpace does
+it natively now), and the one piece worth keeping — the HUD — turned out to be
+useful on its own and for everyone else's setup too. So here it is, standalone.
+sigil lives on as rune's macOS overlay renderer.
 
-## License
+## status
 
-MIT
+v0.1, honest about it: the JSON contract is stable; extractors are best-effort
+(annotate when you want authority). Known gaps — multi-line `vim.keymap.set`
+desc fields, and the native overlay is macOS-only for now. Issues and extractor
+PRs welcome.
+
+## license
+
+MIT — see [LICENSE](LICENSE).
