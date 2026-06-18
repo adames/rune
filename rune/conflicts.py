@@ -35,29 +35,32 @@ class Context:
     modal: bool      # True = only active after you enter a mode/prefix
 
 
+# Section ids that map 1:1 to a context. Checked before the prefix rules.
+_EXACT_CONTEXT: dict[str, Context] = {
+    "skhd": Context(WM, "skhd", modal=False),
+    "tmux-prefix": Context(TMUX, "tmux prefix", modal=True),
+    "tmux-root": Context(TMUX, "tmux root", modal=False),
+    "tmux-copy-mode-vi": Context(TMUX, "tmux copy-mode-vi", modal=True),
+    "zsh-keys": Context(SHELL, "zsh", modal=False),
+    "nvim-keys": Context(EDITOR, "nvim", modal=False),
+    "vscode": Context(EDITOR, "VS Code", modal=False),
+}
+
+
 # section-id (from extractors) -> Context. None = exclude from analysis.
 def context_of(section_id: str) -> Context | None:
+    exact = _EXACT_CONTEXT.get(section_id)
+    if exact is not None:
+        return exact
+    # Prefix rules: one id (aerospace-main) shadows the generic mode below it,
+    # so order matters here in a way the exact table above doesn't need.
     if section_id.startswith("aerospace-main"):
         return Context(WM, "AeroSpace main", modal=False)
     if section_id.startswith("aerospace-"):
         mode = section_id.split("-", 1)[1]
         return Context(WM, f"AeroSpace {mode}", modal=True)
-    if section_id == "skhd":
-        return Context(WM, "skhd", modal=False)
-    if section_id == "tmux-prefix":
-        return Context(TMUX, "tmux prefix", modal=True)
-    if section_id == "tmux-root":
-        return Context(TMUX, "tmux root", modal=False)
-    if section_id == "tmux-copy-mode-vi":
-        return Context(TMUX, "tmux copy-mode-vi", modal=True)
     if section_id.startswith("tmux-copy"):
         return Context(TMUX, "tmux copy-mode", modal=True)
-    if section_id == "zsh-keys":
-        return Context(SHELL, "zsh", modal=False)
-    if section_id == "nvim-keys":
-        return Context(EDITOR, "nvim", modal=False)
-    if section_id == "vscode":
-        return Context(EDITOR, "VS Code", modal=False)
     return None  # git aliases etc. — commands, not key chords
 
 
