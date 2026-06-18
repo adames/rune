@@ -70,7 +70,8 @@ def _autodetect() -> Config:
     """No config? Probe for a few common tools so `rune show` isn't empty."""
     cfg = Config(root=Path.cwd())
     for tool in ("tmux", "git", "aerospace", "ghostty", "kitty", "wezterm",
-                 "vscode", "skhd", "vim", "bash", "fish"):
+                 "vscode", "skhd", "vim", "bash", "fish", "sway", "hyprland",
+                 "readline", "emacs"):
         cfg.extract.append(ExtractSource(tool=tool))
     return cfg
 

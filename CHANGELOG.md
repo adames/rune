@@ -11,7 +11,7 @@ stand on its own.
   chord normalizer that makes `cmd-alt-ctrl-shift-h` / `hyper+h` / `^A` / `<C-w>`
   comparable, and a layer/context model so explicitly-entered modes don't false-alarm
 - native extractors: tmux, ghostty, git, zsh, bash, fish, nvim, aerospace,
-  vscode, skhd, kitty, vim, wezterm
+  vscode, skhd, kitty, vim, wezterm, sway, hyprland, readline, emacs (17)
 - declarative extractor framework (`FileSpec` / `CommandSpec`) — add a
   line-based or introspection tool with one data entry, no module
 - `rune extractors --check` — runs each extractor and reports chord counts so a

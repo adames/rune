@@ -48,6 +48,8 @@ rune reads your *actual* bindings, so it can't drift. That's the whole pitch.
 | `nvim` | `vim.keymap.set(...)` (multi-line, `local map =` aliases) | parse |
 | `ghostty` | `keybind =` config | parse |
 | `kitty` / `vim` / `skhd` | `map` / `*map` / `skhdrc` lines | parse (spec) |
+| `sway` / `hyprland` | `bindsym` / `bind =` (Linux WMs) | parse (spec) |
+| `readline` / `emacs` | `~/.inputrc` / `global-set-key` | parse (spec) |
 
 Raw commands are humanized on the way out (`send-keys -X page-down` → "page
 down", `new_window` → "new window") so the sheet reads like a cheatsheet.

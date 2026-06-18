@@ -237,6 +237,10 @@ class TestDeclarative(unittest.TestCase):
             "bash": '"\\C-a": beginning-of-line',
             "fish": "bind --preset \\cr history-search",
             "wezterm": "  CTRL + SHIFT + 't'    ->   SpawnTab",
+            "sway": "bindsym $mod+Return exec alacritty",
+            "hyprland": "bind = SUPER, Q, exec, kitty",
+            "readline": '"\\C-w": backward-kill-word',
+            "emacs": "(global-set-key (kbd \"C-c f\") #'find-file)",
         }
         for name, line in cases.items():
             m = re.match(spec[name].pattern, line.strip())

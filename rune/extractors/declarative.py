@@ -144,6 +144,21 @@ SPECS: list = [
                 ["wezterm", "show-keys"],
                 r"^\s*(?P<key>.+?)\s+->\s+(?P<desc>.+)$",
                 requires="wezterm", sub="show-keys"),
+    # Linux window managers
+    FileSpec("sway", "Sway / i3", "system",
+             ["~/.config/sway/config", "~/.config/i3/config"],
+             r"^bindsym\s+(?:--\S+\s+)*(?P<key>\S+)\s+(?P<desc>.+)$", sub="bindsym"),
+    FileSpec("hyprland", "Hyprland", "system",
+             ["~/.config/hypr/hyprland.conf"],
+             r"^bind[a-z]*\s*=\s*(?P<key>[^,]*,[^,]+),\s*(?P<desc>.+)$", sub="bind ="),
+    # shells / editors with line-based bind syntax
+    FileSpec("readline", "Readline · inputrc", "terminal",
+             ["~/.inputrc"],
+             r'^"(?P<key>[^"]+)":\s*(?P<desc>.+)$', sub="inputrc"),
+    FileSpec("emacs", "Emacs · global keys", "editor",
+             ["~/.emacs", "~/.emacs.d/init.el", "~/.config/emacs/init.el"],
+             r'^\(global-set-key\s+\(kbd\s+"(?P<key>[^"]+)"\)\s+#?\'?(?P<desc>[^)\s]+)',
+             skip_prefixes=(";",), sub="global-set-key"),
 ]
 
 
