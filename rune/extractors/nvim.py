@@ -19,16 +19,17 @@ _UNQUOTE = re.compile(r"""^['"]|['"]$""")
 _ALIAS = re.compile(r"""local\s+(\w+)\s*=\s*vim\.keymap\.set""")
 
 
-def _call_re(text: str) -> re.Pattern:
-    names = {"vim%.keymap%.set".replace("%.", r"\.")}
+def _open_re(text: str) -> re.Pattern:
+    # Match just the opening `map("n", "<lhs>",` — not the whole call — so
+    # multi-line `map("n", "x", function() … end, { desc = … })` still parses.
+    names = {r"vim\.keymap\.set"}
     names |= {re.escape(a) for a in _ALIAS.findall(text)}
     fn = "|".join(sorted(names, key=len, reverse=True))
     return re.compile(
         rf"""(?:{fn})\(\s*
-            (?P<mode>\{{[^}}]*\}}|['"][^'"]*['"])\s*,\s*
-            (?P<lhs>['"][^'"]*['"])\s*,\s*
-            (?P<rest>.*?)\)\s*$""",
-        re.VERBOSE | re.MULTILINE,
+            (?:\{{[^}}]*\}}|['"][^'"]*['"])\s*,\s*
+            (?P<lhs>['"][^'"]*['"])\s*,""",
+        re.VERBOSE,
     )
 
 
@@ -45,16 +46,20 @@ def extract(source: ExtractSource) -> list[Section]:
     text = Path(path).read_text(errors="replace")
 
     rows: list[Row] = []
-    for m in _call_re(text).finditer(text):
+    calls = list(_open_re(text).finditer(text))
+    for i, m in enumerate(calls):
         lhs = _clean(m.group("lhs"))
-        rest = m.group("rest")
-        desc_m = _DESC.search(rest)
+        # Search for the desc between this call and the next (so a later
+        # mapping's desc can't bleed into this one).
+        end = calls[i + 1].start() if i + 1 < len(calls) else len(text)
+        segment = text[m.end():end]
+        desc_m = _DESC.search(segment)
         if desc_m:
             desc = desc_m.group(1)
         else:
-            # rhs is the first argument before any trailing opts table
-            rhs = rest.split("{", 1)[0].rstrip(", ").strip()
-            desc = _clean(rhs)[:50] or "(no desc)"
+            # fall back to the rhs: first token after lhs, single line
+            rhs = segment.split("{", 1)[0].splitlines()[0] if segment.strip() else ""
+            desc = _clean(rhs.strip().rstrip(","))[:50] or "(no desc)"
         rows.append(Row(key=lhs, desc=desc))
     if not rows:
         warn(f"{path}: no vim.keymap.set() calls found")

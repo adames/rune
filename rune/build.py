@@ -56,6 +56,38 @@ def _auto_layout(pool: dict[str, Section]) -> list[View]:
     return views
 
 
+def filter_document(doc: Document, query: str) -> Document:
+    """Keep only sections/rows matching `query` (case-insensitive).
+
+    A section whose title/sub/idea matches is kept whole; otherwise only its
+    matching rows survive, and empty sections/columns/views are dropped.
+    """
+    q = query.lower().strip()
+    if not q:
+        return doc
+
+    def matches(*fields) -> bool:
+        return any(f and q in f.lower() for f in fields)
+
+    kept: dict[str, Section] = {}
+    for sid, sec in doc.sections.items():
+        if matches(sec.title, sec.sub, sec.idea):
+            kept[sid] = sec
+            continue
+        rows = [r for r in sec.rows if matches(r.key, r.desc)]
+        if rows:
+            kept[sid] = Section(id=sec.id, title=sec.title, rows=rows,
+                                family=sec.family, sub=sec.sub, idea=sec.idea,
+                                custom_layout=sec.custom_layout, source=sec.source)
+
+    views = []
+    for v in doc.views:
+        cols = [Column([s for s in c.sections if s in kept]) for c in v.columns]
+        if any(c.sections for c in cols):
+            views.append(View(id=v.id, label=v.label, key=v.key, columns=cols))
+    return Document(banner=doc.banner, views=views, sections=kept)
+
+
 def build(cfg: Config) -> Document:
     pool = _collect(cfg)
     views = cfg.views or _auto_layout(pool)

@@ -37,12 +37,16 @@ rune reads your *actual* bindings, so it can't drift. That's the whole pitch.
 | extractor | source |
 |---|---|
 | `tmux` | `tmux list-keys` (live server) |
+| `ghostty` | `keybind =` in ghostty config |
 | `git` | `git config alias.*` |
 | `zsh` | `bindkey` |
-| `nvim` | `vim.keymap.set(...)` (incl. `local map =` aliases) |
+| `nvim` | `vim.keymap.set(...)` (incl. `local map =` aliases, multi-line) |
 | `aerospace` | `[mode.*.binding]` in aerospace.toml |
 | `vscode` | `keybindings.json` |
 | `skhd` | `skhdrc` |
+
+Raw commands are humanized on the way out (`send-keys -X page-down` → "page
+down", `new_window` → "new window") so the sheet reads like a cheatsheet.
 
 ```
 rune init      # writes a starter rune.toml
@@ -98,7 +102,8 @@ guessed.
 
 The build is a stable JSON document; renderers are swappable:
 
-- **TUI** (`rune show`) — curses HUD, Tab/digits switch lenses. Widest reach.
+- **TUI** (`rune show`) — curses HUD, Tab/digits switch lenses, `/` to live-search.
+  Family colors. Widest reach. (`--filter <text>` works on any command.)
 - **HTML** (`rune export --html`) — self-contained page, doubles as docs.
 - **Markdown** (`rune export --md`) — diff-able, drops into a wiki.
 - **JSON** (`rune build`) — the contract a native overlay reads. The macOS

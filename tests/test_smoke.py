@@ -153,6 +153,61 @@ class TestConflicts(unittest.TestCase):
         self.assertIsNone(context_of("git-aliases"))  # commands, not chords
 
 
+class TestHumanize(unittest.TestCase):
+    def test_tmux(self):
+        from rune.humanize import humanize_tmux
+        self.assertEqual(humanize_tmux("send-keys -X cancel"), "cancel")
+        self.assertEqual(humanize_tmux("select-pane -L"), "focus pane left")
+        self.assertEqual(humanize_tmux("send-keys -X page-down"), "page down")
+        self.assertEqual(humanize_tmux("split-window -h -c '#{x}'"), "split right")
+
+    def test_generic(self):
+        from rune.humanize import humanize
+        self.assertEqual(humanize("new_window"), "new window")
+        self.assertEqual(humanize("exec-and-forget open -a X"), "open -a X")
+
+
+class TestFilter(unittest.TestCase):
+    def test_keeps_matching_narrows_rows_drops_empty(self):
+        from rune.build import filter_document
+        sec_a = Section(id="a", title="Windows", family="system",
+                        rows=[Row("h", "focus left"), Row("l", "focus right")])
+        sec_b = Section(id="b", title="Git", family="git", rows=[Row("c", "commit")])
+        doc = Document(views=[View("v", "V", "1", [Column(["a"]), Column(["b"])])],
+                      sections={"a": sec_a, "b": sec_b})
+        out = filter_document(doc, "left")
+        self.assertEqual(set(out.sections), {"a"})           # b dropped
+        self.assertEqual([r.key for r in out.sections["a"].rows], ["h"])  # narrowed
+        self.assertEqual(out.views[0].columns[1].sections, [])  # empty col
+
+
+class TestExtractorParsing(unittest.TestCase):
+    def _run(self, tool, text, suffix):
+        from rune.config import ExtractSource
+        from rune.extractors.base import get_extractor
+        p = Path(tempfile.mktemp(suffix=suffix))
+        p.write_text(text)
+        return get_extractor(tool)(ExtractSource(tool=tool, path=p))
+
+    def test_ghostty(self):
+        secs = self._run("ghostty",
+                         "keybind = cmd+t=new_window\nkeybind = ctrl+a>n=next_tab\n", ".config")
+        rows = {r.key: r.desc for r in secs[0].rows}
+        self.assertEqual(rows["cmd+t"], "new window")
+        self.assertEqual(rows["ctrl+a n"], "next tab")  # sequence flattened
+
+    def test_nvim_multiline(self):
+        text = (
+            'local map = vim.keymap.set\n'
+            'map("n", "<leader>x", function()\n  do_a_thing()\nend, { desc = "Do the thing" })\n'
+            'map("n", "<leader>y", "<cmd>Yank<cr>", { desc = "Yank" })\n'
+        )
+        secs = self._run("nvim", text, ".lua")
+        rows = {r.key: r.desc for r in secs[0].rows}
+        self.assertEqual(rows["<leader>x"], "Do the thing")  # desc found across lines
+        self.assertEqual(rows["<leader>y"], "Yank")
+
+
 class TestCLI(unittest.TestCase):
     def test_config_flag_either_side_of_subcommand(self):
         from rune.cli import build_parser

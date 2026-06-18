@@ -69,13 +69,18 @@ def _load(args) -> Config:
 def _autodetect() -> Config:
     """No config? Probe for a few common tools so `rune show` isn't empty."""
     cfg = Config(root=Path.cwd())
-    for tool in ("tmux", "git", "aerospace", "vscode", "skhd"):
+    for tool in ("tmux", "git", "aerospace", "ghostty", "vscode", "skhd"):
         cfg.extract.append(ExtractSource(tool=tool))
     return cfg
 
 
 def _doc(args) -> Document:
-    return build(_load(args))
+    doc = build(_load(args))
+    q = getattr(args, "filter", None)
+    if q:
+        from .build import filter_document
+        doc = filter_document(doc, q)
+    return doc
 
 
 def cmd_init(args) -> int:
@@ -213,9 +218,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = add("build", help="emit the JSON contract")
     s.add_argument("-o", "--output")
+    s.add_argument("--filter", help="keep only chords/sections matching this text")
     s.set_defaults(fn=cmd_build)
 
     s = add("show", help="interactive TUI HUD")
+    s.add_argument("--filter", help="start filtered to chords/sections matching this text")
     s.set_defaults(fn=cmd_show)
 
     s = add("doctor", help="find cross-tool chord conflicts")
@@ -226,6 +233,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--html")
     s.add_argument("--md")
     s.add_argument("--text")
+    s.add_argument("--filter", help="keep only chords/sections matching this text")
     s.set_defaults(fn=cmd_export)
     return p
 

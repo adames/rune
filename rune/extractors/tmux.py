@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 
 from ..config import ExtractSource
+from ..humanize import humanize_tmux
 from ..model import Row, Section
 from .base import have, register, run, warn
 
@@ -37,11 +38,8 @@ def _split_key_command(rest: str) -> tuple[str, str]:
 
 
 def _humanize(cmd: str) -> str:
-    """Shorten a tmux command into a readable description."""
-    cmd = re.sub(r"\s+", " ", cmd).strip()
-    # Drop the trailing display-message noise; keep the verb.
-    cmd = re.sub(r"\s*;.*$", "", cmd)
-    return cmd[:60] + "…" if len(cmd) > 61 else cmd
+    s = humanize_tmux(cmd)
+    return s[:60] + "…" if len(s) > 61 else s
 
 
 @register("tmux")

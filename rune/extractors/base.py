@@ -69,6 +69,6 @@ def prettify_modifiers(rune: str) -> str:
 
 def get_extractor(name: str):
     # Import side-effect: ensure all extractor modules are loaded/registered.
-    from . import aerospace, git, nvim, skhd, tmux, vscode, zsh  # noqa: F401
+    from . import aerospace, ghostty, git, nvim, skhd, tmux, vscode, zsh  # noqa: F401
 
     return REGISTRY.get(name)
