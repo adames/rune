@@ -1,12 +1,13 @@
 """rune CLI — init / build / show / export / extract.
 
-  rune show                 interactive TUI HUD (or plain text if non-TTY)
-  rune build -o out.json    emit the JSON contract (feeds the macOS overlay)
-  rune export --html f.html shareable single-page cheatsheet
+  rune show                 interactive TUI HUD — list + keyboard (k toggles)
+  rune doctor               find cross-tool chord conflicts
+  rune export --html f.html one page: cheatsheet + spatial keyboard
   rune export --md f.md     markdown cheatsheet / docs
+  rune build -o out.json    emit the JSON contract (feeds the macOS overlay)
   rune extract tmux         dump one extractor's sections (debugging)
+  rune extractors --check   list extractors / report what each yields
   rune init                 scaffold a rune.toml in the current dir
-  rune extractors           list available native extractors
 """
 
 from __future__ import annotations
@@ -22,9 +23,9 @@ from .conflicts import collect_bindings, find_conflicts
 from .config import Config, ExtractSource
 from .extractors.base import REGISTRY, get_extractor
 from .model import Document
-from .render import html as html_render
 from .render import markdown as md_render
 from .render import tui
+from .render import web as web_render
 
 DEFAULT_CONFIG = "rune.toml"
 
@@ -144,19 +145,8 @@ def cmd_build(args) -> int:
 
 
 def cmd_show(args) -> int:
-    return tui.run(_doc(args))
-
-
-def cmd_keyboard(args) -> int:
     from .conflicts import collect_chords
-    from .render import keyboard as kb
-    html = kb.render(collect_chords(_load(args)))
-    if args.output:
-        Path(args.output).write_text(html)
-        print(f"wrote {args.output}", file=sys.stderr)
-    else:
-        print(html)
-    return 0
+    return tui.run(_doc(args), collect_chords(_load(args)))
 
 
 def cmd_doctor(args) -> int:
@@ -198,7 +188,8 @@ def cmd_export(args) -> int:
     doc = _doc(args)
     wrote = []
     if args.html:
-        Path(args.html).write_text(html_render.render(doc))
+        from .conflicts import collect_chords
+        Path(args.html).write_text(web_render.render(doc, collect_chords(_load(args))))
         wrote.append(args.html)
     if args.md:
         Path(args.md).write_text(md_render.render(doc))
@@ -263,11 +254,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--json", action="store_true")
     s.set_defaults(fn=cmd_doctor)
 
-    s = add("keyboard", help="spatial keyboard HTML — bindings on the keys")
-    s.add_argument("-o", "--output")
-    s.set_defaults(fn=cmd_keyboard)
-
-    s = add("export", help="render HTML / Markdown / text")
+    s = add("export", help="render HTML (cheatsheet + keyboard) / Markdown / text")
     s.add_argument("--html")
     s.add_argument("--md")
     s.add_argument("--text")

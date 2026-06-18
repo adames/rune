@@ -9,14 +9,10 @@ from __future__ import annotations
 
 import sys
 
+from .. import keyboard as kb
 from ..build import filter_document
 from ..model import Document, Section, View
-
-# 8-color terminal codes by family (curses color pairs map to these).
-FAMILY_TERMCOLOR = {
-    "system": 4, "terminal": 2, "editor": 6, "vim": 3,
-    "nvim": 5, "git": 1, "browser": 3, "app": 5,
-}
+from ..theme import FAMILY_TERM, term_for
 
 
 def _section_lines(sec: Section, width: int) -> list[str]:
@@ -89,6 +85,29 @@ def _view_family(doc: Document, view: View) -> str | None:
     return None
 
 
+def _kb_segments(chords, layer_label):
+    """Rows of bound-key segments (cap, action, family) in physical order —
+    compact but spatial: each row mirrors a keyboard row, left to right."""
+    layers, _ = kb.build_model(chords)
+    tmap = layers.get(layer_label, {})
+    rows = []
+    for row in kb.LAYOUT:
+        seg = []
+        for token, label, _w in row:
+            binds = tmap.get(token)
+            if binds:
+                seg.append((label, binds[0][0], binds[0][2]))
+        if seg:
+            rows.append(seg)
+    return rows
+
+
+def keyboard_text(chords, layer_label: str) -> str:
+    """Monochrome keyboard for a layer (tests / snapshots)."""
+    rows = _kb_segments(chords, layer_label)
+    return "\n".join(" ".join(f"{cap}:{act}" for cap, act, _ in seg) for seg in rows)
+
+
 def _prompt(stdscr, h: int, w: int, initial: str) -> str:
     """Inline `/`-search editor; Enter commits, Esc keeps the prior query."""
     import curses
@@ -114,7 +133,7 @@ def _prompt(stdscr, h: int, w: int, initial: str) -> str:
         curses.curs_set(0)
 
 
-def run(doc: Document) -> int:
+def run(doc: Document, chords=()) -> int:
     if not sys.stdout.isatty():
         sys.stdout.write(plain(doc))
         return 0
@@ -124,68 +143,103 @@ def run(doc: Document) -> int:
         sys.stdout.write(plain(doc))
         return 0
 
+    kb_layers = kb.ordered_layers(kb.build_model(chords)[0]) if chords else []
+
+    def _tabs(stdscr, row, w, labels, active):
+        x = 0
+        for j, lbl in enumerate(labels):
+            seg = f" {j + 1}:{lbl} "
+            if x + len(seg) < w:
+                stdscr.addstr(row, x, seg, curses.A_REVERSE if j == active else curses.A_DIM)
+                x += len(seg) + 1
+
     def _main(stdscr):
         curses.curs_set(0)
         curses.use_default_colors()
-        for fam, c in FAMILY_TERMCOLOR.items():
+        for c in set(FAMILY_TERM.values()):
             try:
                 curses.init_pair(c, c, -1)
             except curses.error:
                 pass
-        idx, query = 0, ""
+        mode, idx, layer, query = "list", 0, 0, ""
         while True:
-            vdoc = filter_document(doc, query) if query else doc
-            if vdoc.views:
-                idx = min(idx, len(vdoc.views) - 1)
             stdscr.erase()
             h, w = stdscr.getmaxyx()
             row = 0
-            if vdoc.banner:
-                stdscr.addnstr(row, 0, " · ".join(f"{b.k} {b.v}" for b in vdoc.banner), w - 1)
+            if doc.banner:
+                stdscr.addnstr(row, 0, " · ".join(f"{b.k} {b.v}" for b in doc.banner), w - 1)
                 row += 2
-            x = 0
-            for j, v in enumerate(vdoc.views):
-                label = f" {v.key}:{v.label} "
-                attr = curses.A_REVERSE if j == idx else curses.A_DIM
-                if x + len(label) < w:
-                    stdscr.addstr(row, x, label, attr)
-                    x += len(label) + 1
-            row += 2
-            if vdoc.views:
-                fam = _view_family(vdoc, vdoc.views[idx])
-                attr = curses.color_pair(FAMILY_TERMCOLOR.get(fam, 0))
-                for cells in _view_columns(vdoc, vdoc.views[idx], w - 1):
+
+            if mode == "list":
+                vdoc = filter_document(doc, query) if query else doc
+                idx = min(idx, len(vdoc.views) - 1) if vdoc.views else 0
+                _tabs(stdscr, row, w, [v.label for v in vdoc.views], idx)
+                row += 2
+                if vdoc.views:
+                    attr = curses.color_pair(term_for(_view_family(vdoc, vdoc.views[idx])))
+                    for cells in _view_columns(vdoc, vdoc.views[idx], w - 1):
+                        if row >= h - 1:
+                            break
+                        stdscr.addnstr(row, 0, "  ".join(cells).rstrip(), w - 1, attr)
+                        row += 1
+                else:
+                    stdscr.addnstr(row, 0, f"no matches for /{query}", w - 1, curses.A_DIM)
+                hint = (f"/{query}" if query
+                        else "/ search · Tab lens · k keyboard · q quit")
+            else:  # keyboard mode
+                layer = min(layer, len(kb_layers) - 1) if kb_layers else 0
+                _tabs(stdscr, row, w, kb_layers, layer)
+                row += 2
+                for seg in _kb_segments(chords, kb_layers[layer] if kb_layers else ""):
                     if row >= h - 1:
                         break
-                    stdscr.addnstr(row, 0, "  ".join(cells).rstrip(), w - 1, attr)
+                    x = 0
+                    for cap, act, fam in seg:
+                        cell = f"{cap}:{act}"
+                        if x + len(cell) + 1 >= w:
+                            break
+                        stdscr.addstr(row, x, cap, curses.color_pair(term_for(fam)) | curses.A_BOLD)
+                        stdscr.addstr(row, x + len(cap), f":{act} ", curses.A_DIM)
+                        x += len(cell) + 1
                     row += 1
-            else:
-                stdscr.addnstr(row, 0, f"no matches for /{query}", w - 1, curses.A_DIM)
-            # status line: search box + hints
-            hint = f"/{query}" if query else "/ search · Tab lens · q quit"
+                hint = "Tab layer · l list · q quit"
+
             stdscr.addnstr(h - 1, 0, hint, w - 1, curses.A_DIM)
             stdscr.refresh()
 
             ch = stdscr.getch()
-            if ch == ord("/"):
-                query = _prompt(stdscr, h, w, query) or ""
-                idx = 0
-            elif ch == 27:                       # Esc clears a filter, else quits
-                if query:
+            if ch == ord("q"):
+                return
+            elif ch == 27:
+                if mode == "list" and query:
                     query = ""
+                elif mode == "kb":
+                    mode = "list"
                 else:
                     return
-            elif ch == ord("q"):
-                return
-            elif ch in (9, curses.KEY_RIGHT) and vdoc.views:
-                idx = (idx + 1) % len(vdoc.views)
-            elif ch in (curses.KEY_BTAB, curses.KEY_LEFT) and vdoc.views:
-                idx = (idx - 1) % len(vdoc.views)
-            else:
-                for j, v in enumerate(vdoc.views):
-                    if v.key and ch == ord(v.key):
-                        idx = j
-                        break
+            elif ch == ord("k") and mode == "list" and kb_layers:
+                mode = "kb"
+            elif ch == ord("l") and mode == "kb":
+                mode = "list"
+            elif mode == "list" and ch == ord("/"):
+                query = _prompt(stdscr, h, w, query) or ""
+                idx = 0
+            elif ch in (9, curses.KEY_RIGHT):
+                if mode == "list":
+                    idx = (idx + 1) % max(1, len(doc.views))
+                elif kb_layers:
+                    layer = (layer + 1) % len(kb_layers)
+            elif ch in (curses.KEY_BTAB, curses.KEY_LEFT):
+                if mode == "list":
+                    idx = (idx - 1) % max(1, len(doc.views))
+                elif kb_layers:
+                    layer = (layer - 1) % len(kb_layers)
+            elif ord("1") <= ch <= ord("9"):
+                n = ch - ord("1")
+                if mode == "list" and n < len(doc.views):
+                    idx = n
+                elif mode == "kb" and n < len(kb_layers):
+                    layer = n
 
     curses.wrapper(_main)
     return 0

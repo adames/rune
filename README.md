@@ -11,10 +11,9 @@ the whole keyboard in one place, generated from the configs I already have, so
 it can't lie to me.
 
 ```
-rune show                 # interactive TUI HUD (works over SSH)
-rune keyboard -o kb.html  # your bindings lit up on a keyboard
+rune show                 # interactive TUI: list + keyboard (k toggles), works over SSH
 rune doctor               # find cross-tool chord conflicts
-rune export --html k.html # shareable single-page cheatsheet
+rune export --html k.html # one page: cheatsheet + spatial keyboard
 rune build -o cheats.json # JSON for a native overlay (e.g. the macOS HUD)
 ```
 
@@ -100,14 +99,18 @@ cmd-alt-ctrl-shift-l = 'focus right'
 On an id collision **annotations win**: extraction gives you coverage for free,
 an annotation is how you override or enrich one section.
 
-## keyboard (`rune keyboard`)
+## the keyboard view
 
-A spatial view instead of a list: `rune keyboard -o kb.html` draws a keyboard
-and lights up every key that does something, colored by family, with the action
-on the cap. Pick a modifier layer (Hyper / Ctrl / Leader / Plain …) and you see
-your whole layer at once — position does the remembering, and the blank keys are
-exactly the chords you have free. Chords that aren't a single physical key (vim
-`<leader>ff` sequences) are listed beside the board rather than guessed onto a cap.
+`rune export --html` writes one page with two views you toggle between:
+
+- **Cheatsheet** — the lenses and sections, as a list.
+- **Keyboard** — a spatial view: every key that does something lights up,
+  colored by family, action on the cap. Pick a modifier layer (Hyper / Ctrl /
+  Leader / Plain …) and you see your whole layer at once — position does the
+  remembering, and the blank keys are exactly the chords you have free. Chords
+  that aren't a single physical key (vim `<leader>ff` sequences) are listed
+  beside the board. The same keyboard is available in the terminal — press `k`
+  in `rune show`.
 
 ## conflicts (`rune doctor`)
 
@@ -138,9 +141,9 @@ guessed.
 
 The build is a stable JSON document; renderers are swappable:
 
-- **TUI** (`rune show`) — curses HUD, Tab/digits switch lenses, `/` to live-search.
-  Family colors. Widest reach. (`--filter <text>` works on any command.)
-- **HTML** (`rune export --html`) — self-contained page, doubles as docs.
+- **TUI** (`rune show`) — curses HUD with both a list view (`/` live-search) and
+  the spatial keyboard (`k` toggles). Works over SSH. (`--filter` works anywhere.)
+- **HTML** (`rune export --html`) — one self-contained page, cheatsheet + keyboard.
 - **Markdown** (`rune export --md`) — diff-able, drops into a wiki.
 - **JSON** (`rune build`) — the contract a native overlay reads. The macOS
   [sigil](https://github.com/adames/sigil) HUD consumes exactly this.

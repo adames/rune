@@ -10,9 +10,9 @@ from rune.build import build
 from rune.config import Config, ExtractSource
 from rune.extractors.base import prettify_modifiers
 from rune.model import BannerItem, Column, Document, Row, Section, View, slugify
-from rune.render import html as html_render
 from rune.render import markdown as md_render
 from rune.render import tui
+from rune.render import web as web_render
 
 ANNOTATED = """\
 # @rune section Windows
@@ -93,10 +93,12 @@ class TestRenderers(unittest.TestCase):
         self.assertIn("## V", out)
         self.assertIn("`caps + h`", out)
 
-    def test_html(self):
-        out = html_render.render(_doc())
+    def test_web_combined(self):
+        out = web_render.render(_doc(), [])  # both views on one page
         self.assertTrue(out.lower().startswith("<!doctype"))
         self.assertIn("class=\"card\"", out)
+        self.assertIn("Cheatsheet", out)
+        self.assertIn("Keyboard", out)
 
     def test_tui_plain(self):
         out = tui.plain(_doc(), width=80)
@@ -250,7 +252,7 @@ class TestDeclarative(unittest.TestCase):
 
 class TestKeyboard(unittest.TestCase):
     def test_layer_label(self):
-        from rune.render.keyboard import layer_label
+        from rune.keyboard import layer_label
         self.assertEqual(layer_label(frozenset({"cmd", "alt", "ctrl", "shift"})), "Hyper")
         self.assertEqual(layer_label(frozenset({"ctrl"})), "Ctrl")
         self.assertEqual(layer_label(frozenset({"leader"})), "Leader")
@@ -259,22 +261,21 @@ class TestKeyboard(unittest.TestCase):
     def test_build_model_places_keys_and_sequences(self):
         from rune.chords import parse
         from rune.conflicts import Context
-        from rune.render.keyboard import build_model
+        from rune.keyboard import build_model
         ctx = Context(0, "AeroSpace main", False)
-        chords = [(parse("hyper+h"), "focus left", ctx),
-                  (parse("<leader>ff"), "find files", Context(3, "nvim", False))]
+        chords = [(parse("hyper+h"), "focus left", ctx, "system"),
+                  (parse("<leader>ff"), "find files", Context(3, "nvim", False), "nvim")]
         layers, leftovers = build_model(chords)
         self.assertIn("h", layers["Hyper"])                  # single key placed
         self.assertTrue(leftovers["Leader"])                 # ff sequence set aside
 
-    def test_render_html(self):
+    def test_keyboard_in_web(self):
         from rune.chords import parse
         from rune.conflicts import Context
-        from rune.render.keyboard import render
-        html = render([(parse("hyper+j"), "focus down", Context(0, "AeroSpace main", False))])
-        self.assertTrue(html.lower().startswith("<!doctype"))
-        self.assertIn("Hyper", html)
-        self.assertIn("key bound", html)
+        chords = [(parse("hyper+j"), "focus down", Context(0, "AeroSpace main", False), "system")]
+        out = web_render.render(_doc(), chords)
+        self.assertIn("key bound", out)
+        self.assertIn("Hyper", out)
 
 
 class TestCLI(unittest.TestCase):
