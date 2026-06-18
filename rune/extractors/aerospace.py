@@ -7,7 +7,7 @@ from pathlib import Path
 
 from ..config import ExtractSource
 from ..model import Row, Section
-from .base import prettify_modifiers, register, warn
+from .base import prettify_modifiers, register, truncate, warn
 
 _DEFAULT = Path("~/.config/aerospace/aerospace.toml").expanduser()
 
@@ -15,9 +15,8 @@ _DEFAULT = Path("~/.config/aerospace/aerospace.toml").expanduser()
 def _humanize(cmd) -> str:
     if isinstance(cmd, list):
         cmd = " ; ".join(str(c) for c in cmd)
-    cmd = str(cmd)
-    cmd = cmd.replace("exec-and-forget ", "")
-    return cmd[:60] + "…" if len(cmd) > 61 else cmd
+    cmd = str(cmd).replace("exec-and-forget ", "")
+    return truncate(cmd)
 
 
 @register("aerospace")

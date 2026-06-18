@@ -12,7 +12,7 @@ import re
 from ..config import ExtractSource
 from ..humanize import humanize_tmux
 from ..model import Row, Section
-from .base import cap_rows, have, register, run, warn
+from .base import cap_rows, have, register, run, truncate, warn
 
 # `bind-key [-r] [-N note] -T <table> <key> <command...>`
 _LINE = re.compile(r"^bind-key\s+(?P<flags>.*?)-T\s+(?P<table>\S+)\s+(?P<rest>.+)$")
@@ -38,8 +38,7 @@ def _split_key_command(rest: str) -> tuple[str, str]:
 
 
 def _humanize(cmd: str) -> str:
-    s = humanize_tmux(cmd)
-    return s[:60] + "…" if len(s) > 61 else s
+    return truncate(humanize_tmux(cmd))
 
 
 @register("tmux")
