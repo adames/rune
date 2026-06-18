@@ -18,6 +18,7 @@ from pathlib import Path
 
 from . import __version__
 from .build import build
+from .conflicts import collect_bindings, find_conflicts
 from .config import Config, ExtractSource
 from .extractors.base import REGISTRY, get_extractor
 from .model import Document
@@ -121,6 +122,41 @@ def cmd_show(args) -> int:
     return tui.run(_doc(args))
 
 
+def cmd_doctor(args) -> int:
+    cfg = _load(args)
+    bindings = collect_bindings(cfg)
+    conflicts = find_conflicts(bindings)
+
+    if args.json:
+        print(json.dumps([
+            {"kind": c.kind, "chord": c.chord,
+             "bindings": [{"context": b.ctx.name, "action": b.action} for b in c.bindings]}
+            for c in conflicts
+        ], indent=2, ensure_ascii=False))
+        return len(conflicts)
+
+    contexts = sorted({b.ctx.name for b in bindings})
+    print(f"analyzed {len(bindings)} chord(s) across {len(contexts)} context(s): "
+          f"{', '.join(contexts) or 'none'}", file=sys.stderr)
+    if not conflicts:
+        print("✓ no conflicts — every chord is reachable where you'd expect")
+        return 0
+
+    dupes = [c for c in conflicts if c.kind == "duplicate"]
+    shadows = [c for c in conflicts if c.kind == "shadow"]
+    for label, group in (("duplicate (one silently wins)", dupes),
+                         ("shadow (outer layer eats the key)", shadows)):
+        if not group:
+            continue
+        print(f"\n{label}:")
+        for c in group:
+            print(f"  ⚠ {c.describe()}")
+            for b in c.bindings:
+                print(f"      {b.ctx.name:18} {b.action}")
+    print(f"\n{len(conflicts)} conflict(s).")
+    return len(conflicts)
+
+
 def cmd_export(args) -> int:
     doc = _doc(args)
     wrote = []
@@ -181,6 +217,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = add("show", help="interactive TUI HUD")
     s.set_defaults(fn=cmd_show)
+
+    s = add("doctor", help="find cross-tool chord conflicts")
+    s.add_argument("--json", action="store_true")
+    s.set_defaults(fn=cmd_doctor)
 
     s = add("export", help="render HTML / Markdown / text")
     s.add_argument("--html")

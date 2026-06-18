@@ -104,6 +104,55 @@ class TestRenderers(unittest.TestCase):
         self.assertIn("focus left", out)
 
 
+class TestChords(unittest.TestCase):
+    def test_canonical(self):
+        from rune.chords import parse
+        eq = lambda r, c: self.assertEqual(parse(r).canonical(), c)
+        eq("cmd-alt-ctrl-shift-h", "cmd+alt+ctrl+shift+h")
+        eq("hyper+h", "cmd+alt+ctrl+shift+h")  # same physical chord
+        eq("^A", "ctrl+a")
+        eq("<C-w>", "ctrl+w")
+        eq("<leader>ff", "leader+ff")
+        eq("F", "shift+f")                       # bare uppercase = shift
+        eq("f", "f")
+
+    def test_unconfident(self):
+        from rune.chords import parse
+        self.assertFalse(parse("^[OA").confident)     # escape sequence
+        self.assertFalse(parse("0  ^  $").confident)  # multi-key sequence
+
+
+class TestConflicts(unittest.TestCase):
+    def _b(self, chord, layer, name, modal):
+        from rune.conflicts import Binding, Context
+        return Binding(chord=chord, action="x", ctx=Context(layer, name, modal))
+
+    def test_duplicate_same_context(self):
+        from rune.conflicts import WM, find_conflicts
+        c = find_conflicts([self._b("cmd+h", WM, "AeroSpace main", False),
+                            self._b("cmd+h", WM, "AeroSpace main", False)])
+        self.assertEqual([x.kind for x in c], ["duplicate"])
+
+    def test_shadow_across_layers(self):
+        from rune.conflicts import EDITOR, WM, find_conflicts
+        c = find_conflicts([self._b("ctrl+a", WM, "AeroSpace main", False),
+                            self._b("ctrl+a", EDITOR, "nvim", False)])
+        self.assertEqual([x.kind for x in c], ["shadow"])
+
+    def test_modal_is_safe(self):
+        from rune.conflicts import TMUX, WM, find_conflicts
+        # same chord, but one is only reachable after entering tmux prefix
+        c = find_conflicts([self._b("c", WM, "AeroSpace main", False),
+                            self._b("c", TMUX, "tmux prefix", True)])
+        self.assertEqual(c, [])
+
+    def test_context_mapping(self):
+        from rune.conflicts import context_of
+        self.assertFalse(context_of("aerospace-main").modal)
+        self.assertTrue(context_of("aerospace-tmux").modal)
+        self.assertIsNone(context_of("git-aliases"))  # commands, not chords
+
+
 class TestCLI(unittest.TestCase):
     def test_config_flag_either_side_of_subcommand(self):
         from rune.cli import build_parser

@@ -12,6 +12,7 @@ it can't lie to me.
 
 ```
 rune show                 # interactive TUI HUD (works over SSH)
+rune doctor               # find cross-tool chord conflicts
 rune export --html k.html # shareable single-page cheatsheet
 rune build -o cheats.json # JSON for a native overlay (e.g. the macOS HUD)
 ```
@@ -67,6 +68,31 @@ cmd-alt-ctrl-shift-l = 'focus right'
 
 On an id collision **annotations win**: extraction gives you coverage for free,
 an annotation is how you override or enrich one section.
+
+## conflicts (`rune doctor`)
+
+Because rune holds every binding from every layer in one model, it can catch
+things a per-tool view can't:
+
+- **duplicate** — the same chord bound twice in the *same* context; one silently
+  wins.
+- **shadow** — an outer layer grabs a key before an inner one sees it. Your WM
+  intercepts before the terminal; the terminal before tmux; tmux before the
+  shell/editor. So a global WM chord can quietly kill a nvim mapping.
+
+```
+$ rune doctor
+shadow (outer layer eats the key):
+  ⚠ ctrl+a: AeroSpace main grabs it before nvim ever sees it
+      AeroSpace main     fullscreen
+      nvim               increment number
+```
+
+Bindings reachable only inside a mode you *enter* (tmux prefix, a vim leader, an
+AeroSpace sub-mode) don't collide with always-on ones — that layering is the
+point, and rune models it so the report stays honest. Chords it can't confidently
+parse (terminal escape sequences, multi-key vim dances) are left out rather than
+guessed.
 
 ## renderers
 
