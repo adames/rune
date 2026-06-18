@@ -45,11 +45,11 @@ def _humanize(cmd: str) -> str:
 @register("tmux")
 def extract(source: ExtractSource) -> list[Section]:
     if not have("tmux"):
-        warn("tmux not installed — skipping")
+        warn("tmux: not installed — skipping")
         return []
     out = run(["tmux", "list-keys"])
     if not out:
-        warn("no running tmux server (start one, or this stays empty)")
+        warn("tmux: no running server — skipping")
         return []
 
     buckets: dict[str, list[Row]] = {}

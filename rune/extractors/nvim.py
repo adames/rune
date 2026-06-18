@@ -41,7 +41,7 @@ def _clean(s: str) -> str:
 def extract(source: ExtractSource) -> list[Section]:
     path = source.path
     if path is None or not Path(path).exists():
-        warn(f"nvim keymap file not found ({path}) — pass [[extract]] path=…")
+        warn(f"nvim: keymap file not found ({path}) — set [[extract]] path=…")
         return []
     text = Path(path).read_text(errors="replace")
 
@@ -62,7 +62,7 @@ def extract(source: ExtractSource) -> list[Section]:
             desc = _clean(rhs.strip().rstrip(","))[:50] or "(no desc)"
         rows.append(Row(key=lhs, desc=desc))
     if not rows:
-        warn(f"{path}: no vim.keymap.set() calls found")
+        warn("nvim: no vim.keymap.set() calls found")
         return []
     limit = int(source.options.get("limit", 24))
     if len(rows) > limit:

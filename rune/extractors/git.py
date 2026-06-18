@@ -10,7 +10,7 @@ from .base import have, register, run, warn
 @register("git")
 def extract(source: ExtractSource) -> list[Section]:
     if not have("git"):
-        warn("git not installed — skipping")
+        warn("git: not installed — skipping")
         return []
     out = run(["git", "config", "--get-regexp", r"^alias\."])
     if not out:

@@ -32,7 +32,7 @@ def extract(source: ExtractSource) -> list[Section]:
     elif have("zsh"):
         out = run(["zsh", "-ic", "bindkey"])
         if not out:
-            warn("could not read `bindkey` from zsh")
+            warn("zsh: could not read bindkey")
             return []
         for line in out.splitlines():
             m = _BINDKEY_OUT.match(line.strip())
@@ -40,7 +40,7 @@ def extract(source: ExtractSource) -> list[Section]:
                 rows.append(Row(key=m.group("key"), desc=_humanize(m.group("widget"))))
         sub = "zsh bindkey"
     else:
-        warn("zsh not installed and no path given — skipping")
+        warn("zsh: not installed and no path given — skipping")
         return []
 
     if not rows:

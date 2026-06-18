@@ -29,7 +29,7 @@ def extract(source: ExtractSource) -> list[Section]:
                 path = p
                 break
     if path is None or not Path(path).exists():
-        warn("no ghostty config found — skipping")
+        warn("ghostty: no config found — skipping")
         return []
 
     rows: list[Row] = []

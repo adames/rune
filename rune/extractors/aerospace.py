@@ -24,12 +24,12 @@ def _humanize(cmd) -> str:
 def extract(source: ExtractSource) -> list[Section]:
     path = source.path or _DEFAULT
     if not path.exists():
-        warn(f"aerospace config not found at {path} — skipping")
+        warn(f"aerospace: no config at {path} — skipping")
         return []
     try:
         data = tomllib.loads(path.read_text())
     except (OSError, tomllib.TOMLDecodeError) as exc:
-        warn(f"{path}: parse failed ({exc})")
+        warn(f"aerospace: parse failed ({exc})")
         return []
 
     modes = data.get("mode", {})

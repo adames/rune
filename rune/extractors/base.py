@@ -75,7 +75,8 @@ def _load_all() -> None:
     global _loaded
     if _loaded:
         return
-    from . import aerospace, ghostty, git, nvim, tmux, vscode, zsh  # noqa: F401
+    from . import aerospace, alacritty, ghostty, git, hammerspoon, helix  # noqa: F401
+    from . import nvim, tmux, vscode, zsh  # noqa: F401
     from . import declarative
     declarative.register_all()
     _loaded = True

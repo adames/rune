@@ -34,8 +34,11 @@ rune reads your *actual* bindings, so it can't drift. That's the whole pitch.
 
 **1. Native extractors — zero annotation.** rune introspects what's really bound:
 
-| extractor | source |
-|---|---|
+```
+rune init   # starter rune.toml
+rune show   # extract + render, no annotation needed
+```
+
 | extractor | source | how |
 |---|---|---|
 | `tmux` | `tmux list-keys` | introspect |
@@ -46,12 +49,15 @@ rune reads your *actual* bindings, so it can't drift. That's the whole pitch.
 | `vscode` | `keybindings.json` | parse |
 | `nvim` | `vim.keymap.set(...)` (multi-line, `local map =` aliases) | parse |
 | `ghostty` | `keybind =` config | parse |
+| `alacritty` / `helix` | `[[keyboard.bindings]]` / `[keys.*]` toml | parse |
+| `hammerspoon` | `hs.hotkey.bind(...)` | parse |
 | `kitty` / `vim` / `skhd` | `map` / `*map` / `skhdrc` lines | parse (spec) |
 | `sway` / `hyprland` | `bindsym` / `bind =` (Linux WMs) | parse (spec) |
 | `readline` / `emacs` | `~/.inputrc` / `global-set-key` | parse (spec) |
 
 Raw commands are humanized on the way out (`send-keys -X page-down` → "page
-down", `new_window` → "new window") so the sheet reads like a cheatsheet.
+down", `new_window` → "new window") so the sheet reads like a cheatsheet. Don't
+see your tool? Most are one line away — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### staying current with the least maintenance
 
@@ -60,9 +66,9 @@ Tools change; rune is built so they break it as rarely as possible:
 1. **Introspect, don't parse, when you can.** `tmux list-keys`, `bind -p`,
    `wezterm show-keys` — the tool dumps its *own* bindings, so its output
    survives its own version bumps. These extractors basically never need edits.
-2. **Simple configs are data, not code.** Line-based formats (kitty, vim, skhd)
-   are one-line regex specs in `extractors/declarative.py` — adding a tool
-   doesn't mean writing (or maintaining) a module.
+2. **Simple configs are data, not code.** Line-based formats (kitty, vim, skhd,
+   sway, hyprland) are one-line regex specs in `extractors/declarative.py` —
+   adding a tool doesn't mean writing (or maintaining) a module.
 3. **Breakage is visible.** `rune extractors --check` runs each one and reports
    how many chords it found, so a silently-broken extractor shows up as `·`
    instead of vanishing.
@@ -73,13 +79,6 @@ $ rune extractors --check
   bash         ✓ 24 chords
   kitty        · nothing (tool absent, or output changed?)
 ```
-
-```
-rune init      # writes a starter rune.toml
-rune show      # extract + render, no annotation required
-```
-
-Don't see your tool? It's ~40 lines to add one — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 **2. Inline annotations — when you want the description to be *yours*.** Put the
 doc next to the binding so it can't go stale. `@rune` and the legacy `@cs`
@@ -184,9 +183,8 @@ sigil lives on as rune's macOS overlay renderer.
 ## status
 
 v0.1, honest about it: the JSON contract is stable; extractors are best-effort
-(annotate when you want authority). Known gaps — multi-line `vim.keymap.set`
-desc fields, and the native overlay is macOS-only for now. Issues and extractor
-PRs welcome.
+(annotate when you want authority). The native overlay renderer is macOS-only
+for now (it's sigil). Issues and extractor PRs welcome.
 
 ## license
 

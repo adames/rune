@@ -40,12 +40,12 @@ def extract(source: ExtractSource) -> list[Section]:
                 path = p
                 break
     if path is None or not Path(path).exists():
-        warn("VS Code keybindings.json not found — skipping")
+        warn("vscode: keybindings.json not found — skipping")
         return []
     try:
         data = json.loads(_strip_jsonc(Path(path).read_text()))
     except (OSError, json.JSONDecodeError) as exc:
-        warn(f"{path}: parse failed ({exc})")
+        warn(f"vscode: parse failed ({exc})")
         return []
     if not isinstance(data, list):
         return []
