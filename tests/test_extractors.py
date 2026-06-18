@@ -94,6 +94,24 @@ class TestDeclarative(unittest.TestCase):
             self.assertTrue(m.group("key") and m.group("desc"), name)
 
 
+class TestTruncate(unittest.TestCase):
+    """Pin the `s[:60] + '…' if len > 61` boundary tmux and aerospace share.
+
+    The off-by-one (a 61-char string is left whole; 62 collapses to 60 + '…')
+    is easy to get subtly wrong, so lock it before hoisting the shared helper.
+    """
+
+    def test_tmux_truncates_past_61(self):
+        from rune.extractors import tmux
+        self.assertEqual(tmux._humanize("a" * 61), "a" * 61)        # exactly 61: kept
+        self.assertEqual(tmux._humanize("a" * 62), "a" * 60 + "…")  # 62: clipped
+
+    def test_aerospace_truncates_past_61(self):
+        from rune.extractors import aerospace
+        self.assertEqual(aerospace._humanize("a" * 61), "a" * 61)
+        self.assertEqual(aerospace._humanize("a" * 62), "a" * 60 + "…")
+
+
 class TestRowCap(unittest.TestCase):
     """Pin the `+N more` overflow footnote each extractor adds past its limit.
 
