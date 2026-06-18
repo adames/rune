@@ -244,6 +244,35 @@ class TestDeclarative(unittest.TestCase):
             self.assertTrue(m.group("key") and m.group("desc"), name)
 
 
+class TestKeyboard(unittest.TestCase):
+    def test_layer_label(self):
+        from rune.render.keyboard import layer_label
+        self.assertEqual(layer_label(frozenset({"cmd", "alt", "ctrl", "shift"})), "Hyper")
+        self.assertEqual(layer_label(frozenset({"ctrl"})), "Ctrl")
+        self.assertEqual(layer_label(frozenset({"leader"})), "Leader")
+        self.assertEqual(layer_label(frozenset()), "Plain")
+
+    def test_build_model_places_keys_and_sequences(self):
+        from rune.chords import parse
+        from rune.conflicts import Context
+        from rune.render.keyboard import build_model
+        ctx = Context(0, "AeroSpace main", False)
+        chords = [(parse("hyper+h"), "focus left", ctx),
+                  (parse("<leader>ff"), "find files", Context(3, "nvim", False))]
+        layers, leftovers = build_model(chords)
+        self.assertIn("h", layers["Hyper"])                  # single key placed
+        self.assertTrue(leftovers["Leader"])                 # ff sequence set aside
+
+    def test_render_html(self):
+        from rune.chords import parse
+        from rune.conflicts import Context
+        from rune.render.keyboard import render
+        html = render([(parse("hyper+j"), "focus down", Context(0, "AeroSpace main", False))])
+        self.assertTrue(html.lower().startswith("<!doctype"))
+        self.assertIn("Hyper", html)
+        self.assertIn("key bound", html)
+
+
 class TestCLI(unittest.TestCase):
     def test_config_flag_either_side_of_subcommand(self):
         from rune.cli import build_parser

@@ -5,6 +5,8 @@
 First cut. Carved out of [sigil](https://github.com/adames/sigil) and made to
 stand on its own.
 
+- `rune keyboard` — spatial keyboard HTML: bindings lit up on the physical
+  keys, grouped by modifier layer, color-coded by family
 - `rune doctor` — cross-tool conflict detection (duplicate + shadow), with a
   chord normalizer that makes `cmd-alt-ctrl-shift-h` / `hyper+h` / `^A` / `<C-w>`
   comparable, and a layer/context model so explicitly-entered modes don't false-alarm

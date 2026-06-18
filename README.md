@@ -12,6 +12,7 @@ it can't lie to me.
 
 ```
 rune show                 # interactive TUI HUD (works over SSH)
+rune keyboard -o kb.html  # your bindings lit up on a keyboard
 rune doctor               # find cross-tool chord conflicts
 rune export --html k.html # shareable single-page cheatsheet
 rune build -o cheats.json # JSON for a native overlay (e.g. the macOS HUD)
@@ -96,6 +97,15 @@ cmd-alt-ctrl-shift-l = 'focus right'
 
 On an id collision **annotations win**: extraction gives you coverage for free,
 an annotation is how you override or enrich one section.
+
+## keyboard (`rune keyboard`)
+
+A spatial view instead of a list: `rune keyboard -o kb.html` draws a keyboard
+and lights up every key that does something, colored by family, with the action
+on the cap. Pick a modifier layer (Hyper / Ctrl / Leader / Plain …) and you see
+your whole layer at once — position does the remembering, and the blank keys are
+exactly the chords you have free. Chords that aren't a single physical key (vim
+`<leader>ff` sequences) are listed beside the board rather than guessed onto a cap.
 
 ## conflicts (`rune doctor`)
 

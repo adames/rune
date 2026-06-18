@@ -83,8 +83,10 @@ class Conflict:
                 f"{inner.ctx.name} ever sees it")
 
 
-def collect_bindings(cfg: Config) -> list[Binding]:
-    out: list[Binding] = []
+def collect_chords(cfg: Config):
+    """Structured (Chord, action, Context) from every extractor — shared by
+    the conflict analyzer and the spatial-keyboard renderer."""
+    out = []
     for src in cfg.extract:
         fn = get_extractor(src.tool)
         if fn is None:
@@ -99,8 +101,13 @@ def collect_bindings(cfg: Config) -> list[Binding]:
                 ch = parse(row.key)
                 if not ch.confident:
                     continue
-                out.append(Binding(chord=ch.canonical(), action=row.desc, ctx=ctx))
+                out.append((ch, row.desc, ctx))
     return out
+
+
+def collect_bindings(cfg: Config) -> list[Binding]:
+    return [Binding(chord=ch.canonical(), action=a, ctx=c)
+            for ch, a, c in collect_chords(cfg)]
 
 
 def find_conflicts(bindings: list[Binding]) -> list[Conflict]:

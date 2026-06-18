@@ -146,6 +146,18 @@ def cmd_show(args) -> int:
     return tui.run(_doc(args))
 
 
+def cmd_keyboard(args) -> int:
+    from .conflicts import collect_chords
+    from .render import keyboard as kb
+    html = kb.render(collect_chords(_load(args)))
+    if args.output:
+        Path(args.output).write_text(html)
+        print(f"wrote {args.output}", file=sys.stderr)
+    else:
+        print(html)
+    return 0
+
+
 def cmd_doctor(args) -> int:
     cfg = _load(args)
     bindings = collect_bindings(cfg)
@@ -249,6 +261,10 @@ def build_parser() -> argparse.ArgumentParser:
     s = add("doctor", help="find cross-tool chord conflicts")
     s.add_argument("--json", action="store_true")
     s.set_defaults(fn=cmd_doctor)
+
+    s = add("keyboard", help="spatial keyboard HTML — bindings on the keys")
+    s.add_argument("-o", "--output")
+    s.set_defaults(fn=cmd_keyboard)
 
     s = add("export", help="render HTML / Markdown / text")
     s.add_argument("--html")
