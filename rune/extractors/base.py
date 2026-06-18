@@ -67,8 +67,20 @@ def prettify_modifiers(rune: str) -> str:
     return f"{pretty}+{key}" if pretty else rune
 
 
-def get_extractor(name: str):
-    # Import side-effect: ensure all extractor modules are loaded/registered.
-    from . import aerospace, ghostty, git, nvim, skhd, tmux, vscode, zsh  # noqa: F401
+_loaded = False
 
+
+def _load_all() -> None:
+    """Register every extractor once: bespoke modules + declarative specs."""
+    global _loaded
+    if _loaded:
+        return
+    from . import aerospace, ghostty, git, nvim, tmux, vscode, zsh  # noqa: F401
+    from . import declarative
+    declarative.register_all()
+    _loaded = True
+
+
+def get_extractor(name: str):
+    _load_all()
     return REGISTRY.get(name)

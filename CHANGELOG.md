@@ -8,7 +8,12 @@ stand on its own.
 - `rune doctor` — cross-tool conflict detection (duplicate + shadow), with a
   chord normalizer that makes `cmd-alt-ctrl-shift-h` / `hyper+h` / `^A` / `<C-w>`
   comparable, and a layer/context model so explicitly-entered modes don't false-alarm
-- native extractors: tmux, ghostty, git, zsh, nvim, aerospace, vscode, skhd
+- native extractors: tmux, ghostty, git, zsh, bash, fish, nvim, aerospace,
+  vscode, skhd, kitty, vim, wezterm
+- declarative extractor framework (`FileSpec` / `CommandSpec`) — add a
+  line-based or introspection tool with one data entry, no module
+- `rune extractors --check` — runs each extractor and reports chord counts so a
+  silently-broken one is visible
 - humanized descriptions — raw commands (`send-keys -X page-down`, `new_window`)
   read like a cheatsheet
 - `/` live-search in the TUI + `--filter <text>` on build/show/export; family colors

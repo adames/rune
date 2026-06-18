@@ -208,6 +208,42 @@ class TestExtractorParsing(unittest.TestCase):
         self.assertEqual(rows["<leader>y"], "Yank")
 
 
+class TestDeclarative(unittest.TestCase):
+    def _run(self, tool, text, suffix=".conf"):
+        from rune.config import ExtractSource
+        from rune.extractors.base import get_extractor
+        p = Path(tempfile.mktemp(suffix=suffix))
+        p.write_text(text)
+        return get_extractor(tool)(ExtractSource(tool=tool, path=p))
+
+    def test_skhd_spec(self):  # migrated from a bespoke module to a spec
+        rows = {r.key: r.desc for r in self._run("skhd", "cmd - h : yabai -m focus west\n")[0].rows}
+        self.assertIn("cmd - h", rows)
+
+    def test_kitty_spec(self):
+        rows = {r.key: r.desc for r in self._run("kitty", "map ctrl+shift+t new_tab\n# c\n")[0].rows}
+        self.assertEqual(rows["ctrl+shift+t"], "new tab")
+
+    def test_vim_spec(self):
+        secs = self._run("vim", 'nnoremap <leader>w :w<CR>\n" a comment\n', ".vimrc")
+        self.assertEqual(secs[0].rows[0].key, "<leader>w")
+
+    def test_command_patterns(self):
+        # introspection patterns parse representative output lines
+        import re
+        from rune.extractors.declarative import SPECS
+        spec = {s.name: s for s in SPECS}
+        cases = {
+            "bash": '"\\C-a": beginning-of-line',
+            "fish": "bind --preset \\cr history-search",
+            "wezterm": "  CTRL + SHIFT + 't'    ->   SpawnTab",
+        }
+        for name, line in cases.items():
+            m = re.match(spec[name].pattern, line.strip())
+            self.assertIsNotNone(m, name)
+            self.assertTrue(m.group("key") and m.group("desc"), name)
+
+
 class TestCLI(unittest.TestCase):
     def test_config_flag_either_side_of_subcommand(self):
         from rune.cli import build_parser

@@ -69,7 +69,8 @@ def _load(args) -> Config:
 def _autodetect() -> Config:
     """No config? Probe for a few common tools so `rune show` isn't empty."""
     cfg = Config(root=Path.cwd())
-    for tool in ("tmux", "git", "aerospace", "ghostty", "vscode", "skhd"):
+    for tool in ("tmux", "git", "aerospace", "ghostty", "kitty", "wezterm",
+                 "vscode", "skhd", "vim", "bash", "fish"):
         cfg.extract.append(ExtractSource(tool=tool))
     return cfg
 
@@ -95,8 +96,26 @@ def cmd_init(args) -> int:
 
 def cmd_extractors(args) -> int:
     get_extractor("")  # force-import to populate REGISTRY
+    if not args.check:
+        for name in sorted(REGISTRY):
+            print(name)
+        return 0
+    # --check: run each against its default source and report what it yielded,
+    # so a silently-broken extractor (returns nothing) is visible.
+    from .config import ExtractSource
+    import contextlib
+    import io
     for name in sorted(REGISTRY):
-        print(name)
+        with contextlib.redirect_stderr(io.StringIO()):
+            try:
+                secs = REGISTRY[name](ExtractSource(tool=name))
+                n = sum(len([r for r in s.rows if not r.is_footnote]) for s in secs)
+            except Exception as exc:  # an extractor should never crash the report
+                print(f"  {name:12} ✗ error: {exc}")
+                continue
+        mark = "✓" if n else "·"
+        detail = f"{n} chords" if n else "nothing (tool absent, or output changed?)"
+        print(f"  {name:12} {mark} {detail}")
     return 0
 
 
@@ -209,6 +228,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_init)
 
     s = add("extractors", help="list native extractors")
+    s.add_argument("--check", action="store_true",
+                  help="run each extractor and report how many chords it yields")
     s.set_defaults(fn=cmd_extractors)
 
     s = add("extract", help="dump one extractor's sections")
