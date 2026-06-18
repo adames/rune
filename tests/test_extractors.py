@@ -112,6 +112,37 @@ class TestTruncate(unittest.TestCase):
         self.assertEqual(aerospace._humanize("a" * 62), "a" * 60 + "…")
 
 
+class TestCapRows(unittest.TestCase):
+    """Pin base.cap_rows directly — including the noun variants that only the
+    command-driven extractors (git's 'aliases', tmux's 'in `table`') use, which
+    can't be exercised through their extractors without the live tools.
+    """
+
+    def _rows(self, n):
+        from rune.model import Row
+        return [Row(str(i), f"d{i}") for i in range(n)]
+
+    def test_under_or_at_limit_unchanged(self):
+        from rune.extractors.base import cap_rows
+        rows = self._rows(5)
+        self.assertEqual(cap_rows(rows, 10), rows)
+        self.assertEqual(cap_rows(rows, 5), rows)  # exactly at limit: no footnote
+
+    def test_footnote_noun_variants(self):
+        from rune.extractors.base import cap_rows
+        cases = {
+            "": "+2 more",                 # empty noun: trailing space stripped
+            "aliases": "+2 more aliases",
+            "bindings": "+2 more bindings",
+            "in `table`": "+2 more in `table`",
+        }
+        for noun, expected in cases.items():
+            capped = cap_rows(self._rows(5), 3, noun)
+            self.assertEqual(len(capped), 4)               # 3 kept + 1 footnote
+            self.assertEqual(capped[-1].key, "—")
+            self.assertEqual(capped[-1].desc, expected, noun)
+
+
 class TestRowCap(unittest.TestCase):
     """Pin the `+N more` overflow footnote each extractor adds past its limit.
 
