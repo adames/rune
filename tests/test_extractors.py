@@ -94,5 +94,34 @@ class TestDeclarative(unittest.TestCase):
             self.assertTrue(m.group("key") and m.group("desc"), name)
 
 
+class TestRowCap(unittest.TestCase):
+    """Pin the `+N more` overflow footnote each extractor adds past its limit.
+
+    These paths aren't otherwise exercised (the other tests stay under the
+    limit), so this characterizes the exact wording before any refactor.
+    """
+
+    def test_nvim_overflow(self):
+        text = "".join(
+            f'vim.keymap.set("n", "<leader>{i}", "<cmd>X{i}<cr>", {{ desc = "d{i}" }})\n'
+            for i in range(25)  # default limit is 24
+        )
+        rows = run_extractor("nvim", text, ".lua")[0].rows
+        self.assertEqual(rows[-1].key, "—")
+        self.assertEqual(rows[-1].desc, "+1 more mappings")
+
+    def test_zsh_file_overflow(self):
+        text = "".join(f"bindkey '^a{i}' widget-{i}\n" for i in range(21))  # limit 20
+        rows = run_extractor("zsh", text, ".zsh")[0].rows
+        self.assertEqual(rows[-1].key, "—")
+        self.assertEqual(rows[-1].desc, "+1 more bindings")
+
+    def test_declarative_overflow(self):
+        text = "".join(f"nnoremap <leader>x{i} :Cmd{i}<CR>\n" for i in range(25))  # limit 24
+        rows = run_extractor("vim", text, ".vimrc")[0].rows
+        self.assertEqual(rows[-1].key, "—")
+        self.assertEqual(rows[-1].desc, "+1 more")
+
+
 if __name__ == "__main__":
     unittest.main()
