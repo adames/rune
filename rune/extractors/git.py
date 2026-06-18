@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ..config import ExtractSource
 from ..model import Row, Section
-from .base import have, register, run, warn
+from .base import cap_rows, have, register, run, warn
 
 
 @register("git")
@@ -26,8 +26,6 @@ def extract(source: ExtractSource) -> list[Section]:
         return []
     rows.sort(key=lambda r: r.key)
     limit = int(source.options.get("limit", 24))
-    if len(rows) > limit:
-        extra = len(rows) - limit
-        rows = rows[:limit] + [Row(key="—", desc=f"+{extra} more aliases")]
+    rows = cap_rows(rows, limit, "aliases")
     return [Section(id="git-aliases", title="Git · aliases", rows=rows,
                     family="git", sub="git config alias.*", source="extractor:git")]

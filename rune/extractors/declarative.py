@@ -23,7 +23,7 @@ from pathlib import Path
 from ..config import ExtractSource
 from ..humanize import humanize
 from ..model import Row, Section
-from .base import have, register, run, warn
+from .base import cap_rows, have, register, run, warn
 
 
 @dataclass
@@ -74,12 +74,6 @@ def _rows_from_lines(lines, rx, skip_desc=None):
     return rows
 
 
-def _cap(rows, limit):
-    if len(rows) > limit:
-        rows = rows[:limit] + [Row("—", f"+{len(rows) - limit} more")]
-    return rows
-
-
 def _make_file(spec: FileSpec):
     rx = re.compile(spec.pattern)
 
@@ -93,7 +87,7 @@ def _make_file(spec: FileSpec):
         rows = _rows_from_lines(good, rx)
         if not rows:
             return []
-        return [Section(id=spec.name, title=spec.title, rows=_cap(rows, spec.limit),
+        return [Section(id=spec.name, title=spec.title, rows=cap_rows(rows, spec.limit),
                         family=spec.family, sub=spec.sub, source=f"extractor:{spec.name}")]
 
     return extract
@@ -113,7 +107,7 @@ def _make_command(spec: CommandSpec):
         rows = _rows_from_lines(out.splitlines(), rx, skip_desc)
         if not rows:
             return []
-        return [Section(id=spec.name, title=spec.title, rows=_cap(rows, spec.limit),
+        return [Section(id=spec.name, title=spec.title, rows=cap_rows(rows, spec.limit),
                         family=spec.family, sub=spec.sub, source=f"extractor:{spec.name}")]
 
     return extract

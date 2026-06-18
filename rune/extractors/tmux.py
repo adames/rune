@@ -12,7 +12,7 @@ import re
 from ..config import ExtractSource
 from ..humanize import humanize_tmux
 from ..model import Row, Section
-from .base import have, register, run, warn
+from .base import cap_rows, have, register, run, warn
 
 # `bind-key [-r] [-N note] -T <table> <key> <command...>`
 _LINE = re.compile(r"^bind-key\s+(?P<flags>.*?)-T\s+(?P<table>\S+)\s+(?P<rest>.+)$")
@@ -67,10 +67,7 @@ def extract(source: ExtractSource) -> list[Section]:
     sections: list[Section] = []
     for table, rows in buckets.items():
         label, sub = _TABLE_LABEL.get(table, (f"tmux · {table}", None))
-        sid = f"tmux-{table}"
-        trimmed = rows[:limit]
-        if len(rows) > limit:
-            trimmed.append(Row(key="—", desc=f"+{len(rows) - limit} more in `{table}`"))
-        sections.append(Section(id=sid, title=label, rows=trimmed,
+        sections.append(Section(id=f"tmux-{table}", title=label,
+                                rows=cap_rows(rows, limit, f"in `{table}`"),
                                 family="terminal", sub=sub, source="extractor:tmux"))
     return sections
