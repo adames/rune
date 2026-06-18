@@ -133,6 +133,95 @@ def _prompt(stdscr, h: int, w: int, initial: str) -> str:
         curses.curs_set(0)
 
 
+def _draw_tabs(stdscr, curses, row, w, labels, active) -> None:
+    x = 0
+    for j, lbl in enumerate(labels):
+        seg = f" {j + 1}:{lbl} "
+        if x + len(seg) < w:
+            stdscr.addstr(row, x, seg, curses.A_REVERSE if j == active else curses.A_DIM)
+            x += len(seg) + 1
+
+
+def _draw_list(stdscr, curses, doc, idx, query, row, w, h) -> tuple[int, str]:
+    """Paint the cheatsheet lens at `idx`. Returns the (clamped idx, hint)."""
+    vdoc = filter_document(doc, query) if query else doc
+    idx = min(idx, len(vdoc.views) - 1) if vdoc.views else 0
+    _draw_tabs(stdscr, curses, row, w, [v.label for v in vdoc.views], idx)
+    row += 2
+    if vdoc.views:
+        attr = curses.color_pair(term_for(_view_family(vdoc, vdoc.views[idx])))
+        for cells in _view_columns(vdoc, vdoc.views[idx], w - 1):
+            if row >= h - 1:
+                break
+            stdscr.addnstr(row, 0, "  ".join(cells).rstrip(), w - 1, attr)
+            row += 1
+    else:
+        stdscr.addnstr(row, 0, f"no matches for /{query}", w - 1, curses.A_DIM)
+    hint = f"/{query}" if query else "/ search · Tab lens · k keyboard · q quit"
+    return idx, hint
+
+
+def _draw_keyboard(stdscr, curses, chords, kb_layers, layer, row, w, h) -> tuple[int, str]:
+    """Paint the spatial keyboard for `layer`. Returns the (clamped layer, hint)."""
+    layer = min(layer, len(kb_layers) - 1) if kb_layers else 0
+    _draw_tabs(stdscr, curses, row, w, kb_layers, layer)
+    row += 2
+    for seg in _kb_segments(chords, kb_layers[layer] if kb_layers else ""):
+        if row >= h - 1:
+            break
+        x = 0
+        for cap, act, fam in seg:
+            cell = f"{cap}:{act}"
+            if x + len(cell) + 1 >= w:
+                break
+            stdscr.addstr(row, x, cap, curses.color_pair(term_for(fam)) | curses.A_BOLD)
+            stdscr.addstr(row, x + len(cap), f":{act} ", curses.A_DIM)
+            x += len(cell) + 1
+        row += 1
+    return layer, "Tab layer · l list · q quit"
+
+
+def _handle_key(ch, curses, stdscr, doc, kb_layers, mode, idx, layer, query, h, w):
+    """Advance HUD state for one keypress, away from any drawing.
+
+    Returns (mode, idx, layer, query, done); `done` True means quit. Pulling
+    the whole key map out of the render loop lets it read in one place.
+    """
+    if ch == ord("q"):
+        return mode, idx, layer, query, True
+    if ch == 27:
+        if mode == "list" and query:
+            query = ""
+        elif mode == "kb":
+            mode = "list"
+        else:
+            return mode, idx, layer, query, True
+    elif ch == ord("k") and mode == "list" and kb_layers:
+        mode = "kb"
+    elif ch == ord("l") and mode == "kb":
+        mode = "list"
+    elif mode == "list" and ch == ord("/"):
+        query = _prompt(stdscr, h, w, query) or ""
+        idx = 0
+    elif ch in (9, curses.KEY_RIGHT):
+        if mode == "list":
+            idx = (idx + 1) % max(1, len(doc.views))
+        elif kb_layers:
+            layer = (layer + 1) % len(kb_layers)
+    elif ch in (curses.KEY_BTAB, curses.KEY_LEFT):
+        if mode == "list":
+            idx = (idx - 1) % max(1, len(doc.views))
+        elif kb_layers:
+            layer = (layer - 1) % len(kb_layers)
+    elif ord("1") <= ch <= ord("9"):
+        n = ch - ord("1")
+        if mode == "list" and n < len(doc.views):
+            idx = n
+        elif mode == "kb" and n < len(kb_layers):
+            layer = n
+    return mode, idx, layer, query, False
+
+
 def run(doc: Document, chords=()) -> int:
     if not sys.stdout.isatty():
         sys.stdout.write(plain(doc))
@@ -144,14 +233,6 @@ def run(doc: Document, chords=()) -> int:
         return 0
 
     kb_layers = kb.ordered_layers(kb.build_model(chords)[0]) if chords else []
-
-    def _tabs(stdscr, row, w, labels, active):
-        x = 0
-        for j, lbl in enumerate(labels):
-            seg = f" {j + 1}:{lbl} "
-            if x + len(seg) < w:
-                stdscr.addstr(row, x, seg, curses.A_REVERSE if j == active else curses.A_DIM)
-                x += len(seg) + 1
 
     def _main(stdscr):
         curses.curs_set(0)
@@ -171,75 +252,18 @@ def run(doc: Document, chords=()) -> int:
                 row += 2
 
             if mode == "list":
-                vdoc = filter_document(doc, query) if query else doc
-                idx = min(idx, len(vdoc.views) - 1) if vdoc.views else 0
-                _tabs(stdscr, row, w, [v.label for v in vdoc.views], idx)
-                row += 2
-                if vdoc.views:
-                    attr = curses.color_pair(term_for(_view_family(vdoc, vdoc.views[idx])))
-                    for cells in _view_columns(vdoc, vdoc.views[idx], w - 1):
-                        if row >= h - 1:
-                            break
-                        stdscr.addnstr(row, 0, "  ".join(cells).rstrip(), w - 1, attr)
-                        row += 1
-                else:
-                    stdscr.addnstr(row, 0, f"no matches for /{query}", w - 1, curses.A_DIM)
-                hint = (f"/{query}" if query
-                        else "/ search · Tab lens · k keyboard · q quit")
-            else:  # keyboard mode
-                layer = min(layer, len(kb_layers) - 1) if kb_layers else 0
-                _tabs(stdscr, row, w, kb_layers, layer)
-                row += 2
-                for seg in _kb_segments(chords, kb_layers[layer] if kb_layers else ""):
-                    if row >= h - 1:
-                        break
-                    x = 0
-                    for cap, act, fam in seg:
-                        cell = f"{cap}:{act}"
-                        if x + len(cell) + 1 >= w:
-                            break
-                        stdscr.addstr(row, x, cap, curses.color_pair(term_for(fam)) | curses.A_BOLD)
-                        stdscr.addstr(row, x + len(cap), f":{act} ", curses.A_DIM)
-                        x += len(cell) + 1
-                    row += 1
-                hint = "Tab layer · l list · q quit"
+                idx, hint = _draw_list(stdscr, curses, doc, idx, query, row, w, h)
+            else:
+                layer, hint = _draw_keyboard(stdscr, curses, chords, kb_layers, layer, row, w, h)
 
             stdscr.addnstr(h - 1, 0, hint, w - 1, curses.A_DIM)
             stdscr.refresh()
 
             ch = stdscr.getch()
-            if ch == ord("q"):
+            mode, idx, layer, query, done = _handle_key(
+                ch, curses, stdscr, doc, kb_layers, mode, idx, layer, query, h, w)
+            if done:
                 return
-            elif ch == 27:
-                if mode == "list" and query:
-                    query = ""
-                elif mode == "kb":
-                    mode = "list"
-                else:
-                    return
-            elif ch == ord("k") and mode == "list" and kb_layers:
-                mode = "kb"
-            elif ch == ord("l") and mode == "kb":
-                mode = "list"
-            elif mode == "list" and ch == ord("/"):
-                query = _prompt(stdscr, h, w, query) or ""
-                idx = 0
-            elif ch in (9, curses.KEY_RIGHT):
-                if mode == "list":
-                    idx = (idx + 1) % max(1, len(doc.views))
-                elif kb_layers:
-                    layer = (layer + 1) % len(kb_layers)
-            elif ch in (curses.KEY_BTAB, curses.KEY_LEFT):
-                if mode == "list":
-                    idx = (idx - 1) % max(1, len(doc.views))
-                elif kb_layers:
-                    layer = (layer - 1) % len(kb_layers)
-            elif ord("1") <= ch <= ord("9"):
-                n = ch - ord("1")
-                if mode == "list" and n < len(doc.views):
-                    idx = n
-                elif mode == "kb" and n < len(kb_layers):
-                    layer = n
 
     curses.wrapper(_main)
     return 0
