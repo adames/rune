@@ -17,6 +17,9 @@ rune export --html k.html # one page: cheatsheet + spatial keyboard
 rune build -o cheats.json # JSON for a native overlay (e.g. the macOS HUD)
 ```
 
+> Maintaining or learning the internals? **[docs/GUIDE.md](docs/GUIDE.md)** is
+> the full tour — architecture, the decisions and why, and how to poke around.
+
 ## why
 
 Every existing option sees only a slice:
