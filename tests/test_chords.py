@@ -1,8 +1,8 @@
 import unittest
 
 from rune.chords import parse
-from rune.conflicts import (EDITOR, TMUX, WM, Binding, Context, context_of,
-                            find_conflicts)
+from rune.conflicts import (EDITOR, SHELL, TMUX, WM, Binding, Context,
+                            context_of, find_conflicts)
 from rune.keyboard import build_model, layer_label
 
 
@@ -43,9 +43,33 @@ class TestConflicts(unittest.TestCase):
         self.assertEqual(c, [])
 
     def test_context_mapping(self):
-        self.assertFalse(context_of("aerospace-main").modal)
-        self.assertTrue(context_of("aerospace-tmux").modal)
-        self.assertIsNone(context_of("git-aliases"))  # commands, not chords
+        # Exhaustive section-id -> (layer, name, modal) | None. Pins the
+        # order-dependent prefix rules: aerospace-main beats the generic
+        # aerospace mode; tmux-copy-mode-vi (exact) beats the tmux-copy prefix.
+        def ctx(sid):
+            c = context_of(sid)
+            return None if c is None else (c.layer, c.name, c.modal)
+
+        cases = {
+            "aerospace-main": (WM, "AeroSpace main", False),
+            "aerospace-service": (WM, "AeroSpace service", True),
+            "aerospace-tmux": (WM, "AeroSpace tmux", True),
+            "skhd": (WM, "skhd", False),
+            "tmux-prefix": (TMUX, "tmux prefix", True),
+            "tmux-root": (TMUX, "tmux root", False),
+            "tmux-copy-mode-vi": (TMUX, "tmux copy-mode-vi", True),
+            "tmux-copy-mode": (TMUX, "tmux copy-mode", True),
+            "zsh-keys": (SHELL, "zsh", False),
+            "nvim-keys": (EDITOR, "nvim", False),
+            "vscode": (EDITOR, "VS Code", False),
+            "git-aliases": None,    # commands, not chords
+            "helix-normal": None,   # not modelled — excluded from analysis
+            "ghostty": None,
+            "alacritty": None,
+            "hammerspoon": None,
+        }
+        for sid, expected in cases.items():
+            self.assertEqual(ctx(sid), expected, sid)
 
 
 class TestKeyboardModel(unittest.TestCase):
