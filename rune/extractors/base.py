@@ -14,10 +14,33 @@ import sys
 from collections.abc import Callable
 
 from ..config import ExtractSource
-from ..model import Section
+from ..model import Row, Section
 
 # name -> fn(source) -> list[Section]
 REGISTRY: dict[str, Callable[[ExtractSource], list[Section]]] = {}
+
+
+def truncate(s: str, limit: int = 60) -> str:
+    """Clip an over-long action to `limit` chars + '…'.
+
+    Only clips when it actually saves space (len > limit + 1), so a string
+    that's one char too long is left whole rather than swapping that char
+    for an ellipsis.
+    """
+    return s[:limit] + "…" if len(s) > limit + 1 else s
+
+
+def cap_rows(rows: list[Row], limit: int, noun: str = "") -> list[Row]:
+    """Trim `rows` to `limit`, replacing the overflow with a `+N more` footnote.
+
+    Every extractor truncates long lists the same way; `noun` tailors the
+    footnote ("+3 more aliases", "+3 more in `prefix`"), and empty means a
+    bare "+3 more".
+    """
+    if len(rows) <= limit:
+        return rows
+    extra = len(rows) - limit
+    return rows[:limit] + [Row(key="—", desc=f"+{extra} more {noun}".rstrip())]
 
 
 def register(name: str):

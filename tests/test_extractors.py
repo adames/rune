@@ -94,5 +94,83 @@ class TestDeclarative(unittest.TestCase):
             self.assertTrue(m.group("key") and m.group("desc"), name)
 
 
+class TestTruncate(unittest.TestCase):
+    """Pin the `s[:60] + '…' if len > 61` boundary tmux and aerospace share.
+
+    The off-by-one (a 61-char string is left whole; 62 collapses to 60 + '…')
+    is easy to get subtly wrong, so lock it before hoisting the shared helper.
+    """
+
+    def test_tmux_truncates_past_61(self):
+        from rune.extractors import tmux
+        self.assertEqual(tmux._humanize("a" * 61), "a" * 61)        # exactly 61: kept
+        self.assertEqual(tmux._humanize("a" * 62), "a" * 60 + "…")  # 62: clipped
+
+    def test_aerospace_truncates_past_61(self):
+        from rune.extractors import aerospace
+        self.assertEqual(aerospace._humanize("a" * 61), "a" * 61)
+        self.assertEqual(aerospace._humanize("a" * 62), "a" * 60 + "…")
+
+
+class TestCapRows(unittest.TestCase):
+    """Pin base.cap_rows directly — including the noun variants that only the
+    command-driven extractors (git's 'aliases', tmux's 'in `table`') use, which
+    can't be exercised through their extractors without the live tools.
+    """
+
+    def _rows(self, n):
+        from rune.model import Row
+        return [Row(str(i), f"d{i}") for i in range(n)]
+
+    def test_under_or_at_limit_unchanged(self):
+        from rune.extractors.base import cap_rows
+        rows = self._rows(5)
+        self.assertEqual(cap_rows(rows, 10), rows)
+        self.assertEqual(cap_rows(rows, 5), rows)  # exactly at limit: no footnote
+
+    def test_footnote_noun_variants(self):
+        from rune.extractors.base import cap_rows
+        cases = {
+            "": "+2 more",                 # empty noun: trailing space stripped
+            "aliases": "+2 more aliases",
+            "bindings": "+2 more bindings",
+            "in `table`": "+2 more in `table`",
+        }
+        for noun, expected in cases.items():
+            capped = cap_rows(self._rows(5), 3, noun)
+            self.assertEqual(len(capped), 4)               # 3 kept + 1 footnote
+            self.assertEqual(capped[-1].key, "—")
+            self.assertEqual(capped[-1].desc, expected, noun)
+
+
+class TestRowCap(unittest.TestCase):
+    """Pin the `+N more` overflow footnote each extractor adds past its limit.
+
+    These paths aren't otherwise exercised (the other tests stay under the
+    limit), so this characterizes the exact wording before any refactor.
+    """
+
+    def test_nvim_overflow(self):
+        text = "".join(
+            f'vim.keymap.set("n", "<leader>{i}", "<cmd>X{i}<cr>", {{ desc = "d{i}" }})\n'
+            for i in range(25)  # default limit is 24
+        )
+        rows = run_extractor("nvim", text, ".lua")[0].rows
+        self.assertEqual(rows[-1].key, "—")
+        self.assertEqual(rows[-1].desc, "+1 more mappings")
+
+    def test_zsh_file_overflow(self):
+        text = "".join(f"bindkey '^a{i}' widget-{i}\n" for i in range(21))  # limit 20
+        rows = run_extractor("zsh", text, ".zsh")[0].rows
+        self.assertEqual(rows[-1].key, "—")
+        self.assertEqual(rows[-1].desc, "+1 more bindings")
+
+    def test_declarative_overflow(self):
+        text = "".join(f"nnoremap <leader>x{i} :Cmd{i}<CR>\n" for i in range(25))  # limit 24
+        rows = run_extractor("vim", text, ".vimrc")[0].rows
+        self.assertEqual(rows[-1].key, "—")
+        self.assertEqual(rows[-1].desc, "+1 more")
+
+
 if __name__ == "__main__":
     unittest.main()

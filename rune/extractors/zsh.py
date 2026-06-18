@@ -7,7 +7,7 @@ from pathlib import Path
 
 from ..config import ExtractSource
 from ..model import Row, Section
-from .base import have, register, run, warn
+from .base import cap_rows, have, register, run, warn
 
 # bindkey output:  "^A" beginning-of-line
 _BINDKEY_OUT = re.compile(r'^"(?P<key>(?:[^"\\]|\\.)*)"\s+(?P<widget>\S+)\s*$')
@@ -46,7 +46,6 @@ def extract(source: ExtractSource) -> list[Section]:
     if not rows:
         return []
     limit = int(source.options.get("limit", 20))
-    if len(rows) > limit:
-        rows = rows[:limit] + [Row(key="—", desc=f"+{len(rows) - limit} more bindings")]
+    rows = cap_rows(rows, limit, "bindings")
     return [Section(id="zsh-keys", title="Zsh · line editor", rows=rows,
                     family="terminal", sub=sub, source="extractor:zsh")]

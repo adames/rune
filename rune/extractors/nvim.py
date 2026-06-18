@@ -11,7 +11,7 @@ from pathlib import Path
 
 from ..config import ExtractSource
 from ..model import Row, Section
-from .base import register, warn
+from .base import cap_rows, register, warn
 
 _DESC = re.compile(r"""desc\s*=\s*['"]([^'"]+)['"]""")
 _UNQUOTE = re.compile(r"""^['"]|['"]$""")
@@ -65,7 +65,6 @@ def extract(source: ExtractSource) -> list[Section]:
         warn("nvim: no vim.keymap.set() calls found")
         return []
     limit = int(source.options.get("limit", 24))
-    if len(rows) > limit:
-        rows = rows[:limit] + [Row(key="—", desc=f"+{len(rows) - limit} more mappings")]
+    rows = cap_rows(rows, limit, "mappings")
     return [Section(id="nvim-keys", title="Neovim · mappings", rows=rows,
                     family="nvim", sub="vim.keymap.set", source="extractor:nvim")]
