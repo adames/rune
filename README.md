@@ -2,193 +2,165 @@
 
 [![ci](https://github.com/adames/rune/actions/workflows/ci.yml/badge.svg)](https://github.com/adames/rune/actions/workflows/ci.yml)
 
-**One keybinding cheatsheet for your whole machine, generated from your configs.**
+One keybinding cheatsheet for your whole machine, generated from your configs.
 
-A rune is a symbol you learn to read. So are your keybindings — except they're
-scattered across tmux, nvim, your window manager, your shell, and you only ever
-half-remember half of them. `which-key` shows you one tool at a time. I wanted
-the whole keyboard in one place, generated from the configs I already have, so
-it can't lie to me.
+`which-key` is great inside one program. rune is for the stack around it: tmux,
+Neovim, your shell, your terminal, your window manager, Git aliases, and the
+little binds you forget until you need them.
 
-```
-rune show                 # interactive TUI: list + keyboard (k toggles), works over SSH
-rune doctor               # find cross-tool chord conflicts
-rune export --html k.html # one page: cheatsheet + spatial keyboard
-rune build -o cheats.json # JSON for a native overlay (e.g. the macOS HUD)
+```sh
+rune show                 # interactive terminal cheatsheet
+rune doctor               # find duplicate and shadowed chords
+rune export --html k.html # self-contained cheatsheet + keyboard page
+rune build -o keys.json   # JSON for another renderer, such as sigil
 ```
 
-> Maintaining or learning the internals? **[docs/GUIDE.md](docs/GUIDE.md)** is
-> the full tour — architecture, the decisions and why, and how to poke around.
+## Install
 
-## why
-
-Every existing option sees only a slice:
-
-| | scope | source | cross-tool | drifts? |
-|---|---|---|---|---|
-| KeyCue / CheatSheet (macOS) | active app's **menu** | app menus | ❌ blind to your dotfiles | no |
-| which-key.nvim | one editor | live bindings | ❌ in-app only | no |
-| a `cheatsheet.md` you hand-wrote | whatever you typed | you | ✅ | **always** |
-| **rune** | **everything** | your configs | ✅ | **no** |
-
-rune reads your *actual* bindings, so it can't drift. That's the whole pitch.
-
-## two ways in (mix freely)
-
-**1. Native extractors — zero annotation.** rune introspects what's really bound:
-
-```
-rune init   # starter rune.toml
-rune show   # extract + render, no annotation needed
+```sh
+pipx install rune-cheatsheet
 ```
 
-| extractor | source | how |
-|---|---|---|
-| `tmux` | `tmux list-keys` | introspect |
-| `git` | `git config alias.*` | introspect |
-| `zsh` / `bash` / `fish` | `bindkey` / `bind -p` / `bind` | introspect |
-| `wezterm` | `wezterm show-keys` | introspect |
-| `aerospace` | `[mode.*.binding]` toml | parse |
-| `vscode` | `keybindings.json` | parse |
-| `nvim` | `vim.keymap.set(...)` (multi-line, `local map =` aliases) | parse |
-| `ghostty` | `keybind =` config | parse |
-| `alacritty` / `helix` | `[[keyboard.bindings]]` / `[keys.*]` toml | parse |
-| `hammerspoon` | `hs.hotkey.bind(...)` | parse |
-| `kitty` / `vim` / `skhd` | `map` / `*map` / `skhdrc` lines | parse (spec) |
-| `sway` / `hyprland` | `bindsym` / `bind =` (Linux WMs) | parse (spec) |
-| `readline` / `emacs` | `~/.inputrc` / `global-set-key` | parse (spec) |
+From a clone:
 
-Raw commands are humanized on the way out (`send-keys -X page-down` → "page
-down", `new_window` → "new window") so the sheet reads like a cheatsheet. Don't
-see your tool? Most are one line away — see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-### staying current with the least maintenance
-
-Tools change; rune is built so they break it as rarely as possible:
-
-1. **Introspect, don't parse, when you can.** `tmux list-keys`, `bind -p`,
-   `wezterm show-keys` — the tool dumps its *own* bindings, so its output
-   survives its own version bumps. These extractors basically never need edits.
-2. **Simple configs are data, not code.** Line-based formats (kitty, vim, skhd,
-   sway, hyprland) are one-line regex specs in `extractors/declarative.py` —
-   adding a tool doesn't mean writing (or maintaining) a module.
-3. **Breakage is visible.** `rune extractors --check` runs each one and reports
-   how many chords it found, so a silently-broken extractor shows up as `·`
-   instead of vanishing.
-
-```
-$ rune extractors --check
-  tmux         ✓ 72 chords
-  bash         ✓ 24 chords
-  kitty        · nothing (tool absent, or output changed?)
+```sh
+pip install -e .
 ```
 
-**2. Inline annotations — when you want the description to be *yours*.** Put the
-doc next to the binding so it can't go stale. `@rune` and the legacy `@cs`
-marker both work:
+rune is pure Python 3.11+ and uses the standard library only.
 
-```toml
-# @rune section Windows
-# @rune family  system
-# @rune idea    hjkl focuses, yuio swaps
-# @rune row     caps + h :: focus left
-# @rune row     caps + l :: focus right
-# @rune end
-cmd-alt-ctrl-shift-h = 'focus left'
-cmd-alt-ctrl-shift-l = 'focus right'
+## Quick Start
+
+```sh
+rune init
+rune show
 ```
 
-On an id collision **annotations win**: extraction gives you coverage for free,
-an annotation is how you override or enrich one section.
+`rune init` writes a small `rune.toml`. `rune show` reads it, extracts bindings,
+and opens a terminal UI. Press `k` in the UI for the keyboard view.
 
-## the keyboard view
+No config yet? `rune show` still tries common tools so you can see whether it is
+useful before wiring anything up.
 
-`rune export --html` writes one page with two views you toggle between:
+## What It Reads
 
-- **Cheatsheet** — the lenses and sections, as a list.
-- **Keyboard** — a spatial view: every key that does something lights up,
-  colored by family, action on the cap. Pick a modifier layer (Hyper / Ctrl /
-  Leader / Plain …) and you see your whole layer at once — position does the
-  remembering, and the blank keys are exactly the chords you have free. Chords
-  that aren't a single physical key (vim `<leader>ff` sequences) are listed
-  beside the board. The same keyboard is available in the terminal — press `k`
-  in `rune show`.
+rune can read bindings in two ways. Mix them freely.
 
-## conflicts (`rune doctor`)
+### Native Extractors
 
-Because rune holds every binding from every layer in one model, it can catch
-things a per-tool view can't:
-
-- **duplicate** — the same chord bound twice in the *same* context; one silently
-  wins.
-- **shadow** — an outer layer grabs a key before an inner one sees it. Your WM
-  intercepts before the terminal; the terminal before tmux; tmux before the
-  shell/editor. So a global WM chord can quietly kill a nvim mapping.
-
-```
-$ rune doctor
-shadow (outer layer eats the key):
-  ⚠ ctrl+a: AeroSpace main grabs it before nvim ever sees it
-      AeroSpace main     fullscreen
-      nvim               increment number
-```
-
-Bindings reachable only inside a mode you *enter* (tmux prefix, a vim leader, an
-AeroSpace sub-mode) don't collide with always-on ones — that layering is the
-point, and rune models it so the report stays honest. Chords it can't confidently
-parse (terminal escape sequences, multi-key vim dances) are left out rather than
-guessed.
-
-## renderers
-
-The build is a stable JSON document; renderers are swappable:
-
-- **TUI** (`rune show`) — curses HUD with both a list view (`/` live-search) and
-  the spatial keyboard (`k` toggles). Works over SSH. (`--filter` works anywhere.)
-- **HTML** (`rune export --html`) — one self-contained page, cheatsheet + keyboard.
-- **Markdown** (`rune export --md`) — diff-able, drops into a wiki.
-- **JSON** (`rune build`) — the contract a native overlay reads. The macOS
-  [sigil](https://github.com/adames/sigil) HUD consumes exactly this.
-
-## config
-
-`rune.toml` declares sources and (optionally) hand-tuned lenses. Omit the lenses
-and rune auto-groups by family. Full example:
-[`examples/dotfiles.rune.toml`](examples/dotfiles.rune.toml).
+These read real bindings with no annotation:
 
 ```toml
 [[extract]]
 tool = "tmux"
+
+[[extract]]
+tool = "git"
+
+[[extract]]
+tool = "nvim"
+path = "~/.config/nvim/lua/keymaps.lua"
+```
+
+Current extractors include tmux, Git aliases, zsh, bash, fish, Neovim, WezTerm,
+Ghostty, Kitty, Alacritty, Helix, VS Code, AeroSpace, Hammerspoon, skhd, Vim,
+Sway, Hyprland, readline, and Emacs.
+
+Check what works on your machine:
+
+```sh
+rune extractors --check
+```
+
+### Inline Annotations
+
+Use annotations when you want the description to be yours:
+
+```toml
+# @rune section Windows
+# @rune family  system
+# @rune row     caps + h :: focus left
+# @rune row     caps + l :: focus right
+# @rune end
+cmd-alt-ctrl-shift-h = "focus left"
+cmd-alt-ctrl-shift-l = "focus right"
+```
+
+`@rune` is the current marker. The old `@cs` marker still works.
+
+If an extractor and an annotation produce the same section, the annotation wins.
+Extraction gives coverage; annotations give taste and authority.
+
+## Example Config
+
+```toml
+[[extract]]
+tool = "tmux"
+
+[[extract]]
+tool = "git"
+
 [[annotate]]
 path = "~/.config/aerospace/aerospace.toml"
 
 [[view]]
-id = "term"; label = "Terminal"; key = "1"
-columns = [ ["tmux-prefix"], ["git-aliases"], [] ]
+id = "term"
+label = "Terminal"
+key = "1"
+columns = [["tmux-prefix"], ["git-aliases"], []]
 ```
 
-## install
+There is a fuller example at
+[`examples/dotfiles.rune.toml`](examples/dotfiles.rune.toml).
 
+## Output
+
+- `rune show` opens a terminal cheatsheet with search and a keyboard view.
+- `rune export --html keys.html` writes one portable HTML page.
+- `rune export --md keys.md` writes Markdown for docs or a wiki.
+- `rune build -o keys.json` writes the stable JSON contract.
+
+The HTML and TUI keyboard views show physical keys by modifier layer. That makes
+used chords and free chords visible at a glance.
+
+## Conflicts
+
+```sh
+rune doctor
 ```
-pipx install rune-cheatsheet     # or, from a clone: pip install -e .
-```
 
-Pure Python ≥3.11, **stdlib only** — nothing to pull in.
+`doctor` looks for:
 
-## where it came from
+- duplicates: the same chord bound twice in the same context
+- shadows: an outer layer catches a chord before an inner layer can see it
 
-rune is the cheatsheet half of [sigil](https://github.com/adames/sigil), my
-macOS window-manager toolkit. I ripped the window management out (AeroSpace does
-it natively now), and the one piece worth keeping — the HUD — turned out to be
-useful on its own and for everyone else's setup too. So here it is, standalone.
-sigil lives on as rune's macOS overlay renderer.
+For example, a window-manager binding can shadow a terminal, tmux, shell, or
+editor binding. Modal bindings such as tmux prefix maps and Vim leader maps are
+handled separately so intentional layers do not look like bugs.
 
-## status
+## sigil
 
-v0.1, honest about it: the JSON contract is stable; extractors are best-effort
-(annotate when you want authority). The native overlay renderer is macOS-only
-for now (it's sigil). Issues and extractor PRs welcome.
+rune came out of
+[sigil](https://github.com/adames/sigil), a macOS window-manager toolkit. The
+window-management parts moved on; the useful piece was the keybinding HUD.
 
-## license
+Now rune owns the data and renderers. sigil can still act as a native macOS HUD
+by reading `rune build` JSON.
 
-MIT — see [LICENSE](LICENSE).
+## Status
+
+v0.1. The JSON shape is intended to be stable. Extractors are best effort.
+Annotate anything you want to be exact, polished, or personal.
+
+For internals and maintenance notes, read [`docs/GUIDE.md`](docs/GUIDE.md).
+
+## Authorship
+
+This project and its docs were written with AI assistance. Care was taken to
+keep the code and explanations readable by both humans and AI agents: short
+sections, direct examples, stable names, and comments where they earn their
+place.
+
+## License
+
+MIT. See [`LICENSE`](LICENSE).
