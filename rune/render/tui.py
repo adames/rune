@@ -59,11 +59,20 @@ def _view_columns(doc: Document, view: View, total_width: int) -> list[list[str]
     return out
 
 
-def plain(doc: Document, width: int = 100) -> str:
+def plain(doc: Document, width: int = 100, chords=()) -> str:
     out: list[str] = []
     if doc.banner:
         out.append(" · ".join(f"{b.k} {b.v}" for b in doc.banner))
         out.append("")
+    if chords:
+        layers = kb.ordered_layers(kb.build_model(chords)[0])
+        if layers:
+            out.append("Keyboard")
+            out.append("─" * min(width, 100))
+            out.append(keyboard_text(chords, layers[0], width=width))
+            if len(layers) > 1:
+                out.append(f"layers: {', '.join(layers)}")
+            out.append("")
     for i, view in enumerate(doc.views):
         tabs = "  ".join(
             (f"[{v.key}]{v.label}" if j == i else f" {v.key} {v.label}")
@@ -102,10 +111,44 @@ def _kb_segments(chords, layer_label):
     return rows
 
 
-def keyboard_text(chords, layer_label: str) -> str:
-    """Monochrome keyboard for a layer (tests / snapshots)."""
-    rows = _kb_segments(chords, layer_label)
-    return "\n".join(" ".join(f"{cap}:{act}" for cap, act, _ in seg) for seg in rows)
+def _cap_width(units: float) -> int:
+    return max(3, round(units * 3))
+
+
+def _fit(s: str, width: int) -> str:
+    return s if len(s) <= width else s[: max(0, width - 1)] + "…"
+
+
+def _keycap(label: str, units: float, binds) -> str:
+    inner = _cap_width(units)
+    text = label
+    if binds:
+        text = f"{label}:{binds[0][0]}"
+    return "[" + _fit(text, inner).center(inner) + "]"
+
+
+def keyboard_text(chords, layer_label: str, width: int = 100) -> str:
+    """Monochrome physical keyboard for a layer (tests / snapshots)."""
+    layers, leftovers = kb.build_model(chords)
+    tmap = layers.get(layer_label, {})
+    lines = [f"{layer_label} layer"]
+    for row in kb.LAYOUT:
+        line = " ".join(_keycap(label, units, tmap.get(token, []))
+                        for token, label, units in row)
+        lines.append(_truncate(line, width))
+
+    bound = []
+    for row in kb.LAYOUT:
+        for token, label, _units in row:
+            for action, ctx, _family in tmap.get(token, []):
+                bound.append(f"{label}:{action} ({ctx})")
+    if leftovers.get(layer_label):
+        bound += [f"{ch.canonical()}:{action} ({ctx})"
+                  for ch, action, ctx, _family in leftovers[layer_label]]
+    if bound:
+        lines.append("")
+        lines += [_truncate(s, width) for s in bound[:16]]
+    return "\n".join(lines)
 
 
 def _prompt(stdscr, h: int, w: int, initial: str) -> str:
@@ -166,17 +209,11 @@ def _draw_keyboard(stdscr, curses, chords, kb_layers, layer, row, w, h) -> tuple
     layer = min(layer, len(kb_layers) - 1) if kb_layers else 0
     _draw_tabs(stdscr, curses, row, w, kb_layers, layer)
     row += 2
-    for seg in _kb_segments(chords, kb_layers[layer] if kb_layers else ""):
+    lines = keyboard_text(chords, kb_layers[layer] if kb_layers else "", width=w - 1).splitlines()
+    for line in lines[1:]:
         if row >= h - 1:
             break
-        x = 0
-        for cap, act, fam in seg:
-            cell = f"{cap}:{act}"
-            if x + len(cell) + 1 >= w:
-                break
-            stdscr.addstr(row, x, cap, curses.color_pair(term_for(fam)) | curses.A_BOLD)
-            stdscr.addstr(row, x + len(cap), f":{act} ", curses.A_DIM)
-            x += len(cell) + 1
+        stdscr.addnstr(row, 0, line, w - 1)
         row += 1
     return layer, "Tab layer · l list · q quit"
 
@@ -224,12 +261,12 @@ def _handle_key(ch, curses, stdscr, doc, kb_layers, mode, idx, layer, query, h, 
 
 def run(doc: Document, chords=()) -> int:
     if not sys.stdout.isatty():
-        sys.stdout.write(plain(doc))
+        sys.stdout.write(plain(doc, chords=chords))
         return 0
     try:
         import curses
     except ImportError:
-        sys.stdout.write(plain(doc))
+        sys.stdout.write(plain(doc, chords=chords))
         return 0
 
     kb_layers = kb.ordered_layers(kb.build_model(chords)[0]) if chords else []

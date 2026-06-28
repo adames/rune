@@ -195,7 +195,8 @@ def cmd_export(args) -> int:
         Path(args.md).write_text(md_render.render(doc))
         wrote.append(args.md)
     if args.text:
-        Path(args.text).write_text(tui.plain(doc))
+        from .conflicts import collect_chords
+        Path(args.text).write_text(tui.plain(doc, chords=collect_chords(_load(args))))
         wrote.append(args.text)
     if not wrote:
         print("rune: nothing to export (pass --html/--md/--text)", file=sys.stderr)
