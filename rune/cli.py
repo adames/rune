@@ -61,15 +61,14 @@ tool = "aerospace"
 def _load(args) -> Config:
     path = Path(args.config)
     if not path.exists():
-        print(f"rune: no {path} (run `rune init`); using auto-detect defaults",
-              file=sys.stderr)
+        print(f"rune: no {path}; auto-detecting common tools", file=sys.stderr)
         return _autodetect()
     return Config.load(path)
 
 
 def _autodetect() -> Config:
     """No config? Probe for a few common tools so `rune show` isn't empty."""
-    cfg = Config(root=Path.cwd())
+    cfg = Config(root=Path.cwd(), autodetected=True)
     for tool in ("tmux", "git", "aerospace", "ghostty", "kitty", "wezterm",
                  "alacritty", "vscode", "skhd", "vim", "bash", "fish", "sway",
                  "hyprland", "readline", "emacs", "helix", "hammerspoon"):
@@ -145,8 +144,14 @@ def cmd_build(args) -> int:
 
 
 def cmd_show(args) -> int:
-    from .conflicts import collect_chords
-    return tui.run(_doc(args), collect_chords(_load(args)))
+    from .conflicts import collect_chords_from_sections
+    cfg = _load(args)
+    doc = build(cfg)
+    q = getattr(args, "filter", None)
+    if q:
+        from .build import filter_document
+        doc = filter_document(doc, q)
+    return tui.run(doc, collect_chords_from_sections(doc.sections.values()))
 
 
 def cmd_doctor(args) -> int:
@@ -185,18 +190,23 @@ def cmd_doctor(args) -> int:
 
 
 def cmd_export(args) -> int:
-    doc = _doc(args)
+    from .conflicts import collect_chords_from_sections
+    cfg = _load(args)
+    doc = build(cfg)
+    q = getattr(args, "filter", None)
+    if q:
+        from .build import filter_document
+        doc = filter_document(doc, q)
+    chords = collect_chords_from_sections(doc.sections.values())
     wrote = []
     if args.html:
-        from .conflicts import collect_chords
-        Path(args.html).write_text(web_render.render(doc, collect_chords(_load(args))))
+        Path(args.html).write_text(web_render.render(doc, chords))
         wrote.append(args.html)
     if args.md:
         Path(args.md).write_text(md_render.render(doc))
         wrote.append(args.md)
     if args.text:
-        from .conflicts import collect_chords
-        Path(args.text).write_text(tui.plain(doc, chords=collect_chords(_load(args))))
+        Path(args.text).write_text(tui.plain(doc, chords=chords))
         wrote.append(args.text)
     if not wrote:
         print("rune: nothing to export (pass --html/--md/--text)", file=sys.stderr)
