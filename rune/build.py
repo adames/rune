@@ -11,6 +11,8 @@ synthesizes a default layout (one lens per family).
 
 from __future__ import annotations
 
+import contextlib
+import io
 import sys
 
 from .annotations import parse_file
@@ -21,6 +23,7 @@ from .model import BannerItem, Column, Document, Section, View
 
 def _collect(cfg: Config) -> dict[str, Section]:
     pool: dict[str, Section] = {}
+    found: dict[str, int] = {}
 
     # 1. extractors
     for src in cfg.extract:
@@ -28,13 +31,28 @@ def _collect(cfg: Config) -> dict[str, Section]:
         if fn is None:
             print(f"rune: unknown extractor '{src.tool}'", file=sys.stderr)
             continue
-        for sec in fn(src):
+        if cfg.autodetected:
+            with contextlib.redirect_stderr(io.StringIO()):
+                sections = fn(src)
+        else:
+            sections = fn(src)
+        if sections:
+            found[src.tool] = sum(len([r for r in s.rows if not r.is_footnote])
+                                  for s in sections)
+        for sec in sections:
             pool[sec.id] = sec
 
     # 2. annotations (override extractors on id collision)
     for src in cfg.annotate:
         for sec in parse_file(src.path, src.prefix, cfg.marker):
             pool[sec.id] = sec
+
+    if cfg.autodetected:
+        if found:
+            bits = [f"{tool} ({count})" for tool, count in sorted(found.items())]
+            print("rune: found " + ", ".join(bits), file=sys.stderr)
+        else:
+            print("rune: found no keybinding sources", file=sys.stderr)
 
     return pool
 

@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from .chords import parse
 from .config import Config, ExtractSource
 from .extractors.base import get_extractor
+from .model import Section
 
 # Stack layers, outermost (grabs keys first) to innermost.
 WM, TERMINAL, TMUX, SHELL, EDITOR = 0, 1, 2, 3, 3
@@ -89,22 +90,29 @@ class Conflict:
 def collect_chords(cfg: Config):
     """Structured (Chord, action, Context, family) from every extractor —
     shared by the conflict analyzer and the spatial-keyboard renderer."""
-    out = []
+    sections: list[Section] = []
     for src in cfg.extract:
         fn = get_extractor(src.tool)
         if fn is None:
             continue
-        for sec in fn(src):
-            ctx = context_of(sec.id)
-            if ctx is None:
+        sections += fn(src)
+    return collect_chords_from_sections(sections)
+
+
+def collect_chords_from_sections(sections):
+    """Structured chords from already-built sections."""
+    out = []
+    for sec in sections:
+        ctx = context_of(sec.id)
+        if ctx is None:
+            continue
+        for row in sec.rows:
+            if row.is_footnote:
                 continue
-            for row in sec.rows:
-                if row.is_footnote:
-                    continue
-                ch = parse(row.key)
-                if not ch.confident:
-                    continue
-                out.append((ch, row.desc, ctx, sec.family))
+            ch = parse(row.key)
+            if not ch.confident:
+                continue
+            out.append((ch, row.desc, ctx, sec.family))
     return out
 
 

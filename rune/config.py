@@ -69,6 +69,7 @@ class Config:
     banner: list[BannerItem] = field(default_factory=list)
     views: list[View] = field(default_factory=list)
     root: Path = field(default_factory=Path.cwd)
+    autodetected: bool = False
 
     @staticmethod
     def load(path: Path) -> "Config":

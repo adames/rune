@@ -279,7 +279,7 @@ def run(doc: Document, chords=()) -> int:
                 curses.init_pair(c, c, -1)
             except curses.error:
                 pass
-        mode, idx, layer, query = "list", 0, 0, ""
+        mode, idx, layer, query = ("kb" if kb_layers else "list"), 0, 0, ""
         while True:
             stdscr.erase()
             h, w = stdscr.getmaxyx()
