@@ -37,6 +37,13 @@ class TestTui(unittest.TestCase):
         self.assertIn("Windows", out)
         self.assertIn("focus left", out)
 
+    def test_plain_can_lead_with_keyboard(self):
+        chords = [(parse("hyper+h"), "focus left", Context(0, "AeroSpace main", False), "system")]
+        out = tui.plain(make_doc(), width=80, chords=chords)
+        self.assertIn("Keyboard", out)
+        self.assertIn("[h:", out)
+        self.assertLess(out.index("Keyboard"), out.index("Windows"))
+
     def test_keyboard_text(self):
         chords = [(parse("hyper+h"), "focus left", Context(0, "AeroSpace main", False), "system")]
         out = tui.keyboard_text(chords, "Hyper")
