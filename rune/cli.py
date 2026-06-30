@@ -58,6 +58,14 @@ tool = "aerospace"
 """
 
 
+def _write_text(path: str | Path, text: str) -> Path:
+    """Write a CLI output file, creating parent directories when needed."""
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text, encoding="utf-8")
+    return out
+
+
 def _load(args) -> Config:
     path = Path(args.config)
     if not path.exists():
@@ -90,7 +98,7 @@ def cmd_init(args) -> int:
     if path.exists() and not args.force:
         print(f"rune: {path} exists (use --force to overwrite)", file=sys.stderr)
         return 1
-    path.write_text(_SCAFFOLD)
+    _write_text(path, _SCAFFOLD)
     print(f"wrote {path}")
     return 0
 
@@ -135,7 +143,7 @@ def cmd_build(args) -> int:
     doc = _doc(args)
     out = json.dumps(doc.to_json(), indent=2, ensure_ascii=False)
     if args.output:
-        Path(args.output).write_text(out + "\n")
+        _write_text(args.output, out + "\n")
         print(f"wrote {args.output} "
               f"({len(doc.views)} lenses, {len(doc.sections)} sections)", file=sys.stderr)
     else:
@@ -200,13 +208,13 @@ def cmd_export(args) -> int:
     chords = collect_chords_from_sections(doc.sections.values())
     wrote = []
     if args.html:
-        Path(args.html).write_text(web_render.render(doc, chords))
+        _write_text(args.html, web_render.render(doc, chords))
         wrote.append(args.html)
     if args.md:
-        Path(args.md).write_text(md_render.render(doc))
+        _write_text(args.md, md_render.render(doc))
         wrote.append(args.md)
     if args.text:
-        Path(args.text).write_text(tui.plain(doc, chords=chords))
+        _write_text(args.text, tui.plain(doc, chords=chords))
         wrote.append(args.text)
     if not wrote:
         print("rune: nothing to export (pass --html/--md/--text)", file=sys.stderr)
